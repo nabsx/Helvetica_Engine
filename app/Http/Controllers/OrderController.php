@@ -84,6 +84,7 @@ class OrderController extends Controller
             $data,
             $pgFee,
             $netReceived,
+            $change,
             $shift
         ): Order {
             $order = Order::create([
@@ -95,6 +96,8 @@ class OrderController extends Controller
                 'total_amount' => $totalBayar,
                 'payment_type' => $data['payment_type'],
                 'rounding_adjustment' => $roundingAdjustment,
+                'cash_given' => $data['payment_type'] === 'CASH' ? $data['cash_given'] : null,
+                'change_amount' => $change,
                 'pg_fee' => $pgFee,
                 'net_received' => $netReceived,
                 'status' => 'paid',

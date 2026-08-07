@@ -3,6 +3,7 @@
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\PosController;
+use App\Http\Controllers\ReceiptController;
 use App\Http\Controllers\ShiftController;
 use App\Http\Controllers\SalesReportController;
 use Illuminate\Support\Facades\Route;
@@ -20,6 +21,11 @@ Route::middleware('auth')->group(function () {
     Route::get('/admin/laporan-penjualan', [SalesReportController::class, 'index'])
         ->middleware('admin')
         ->name('admin.sales-report');
+
+    Route::get('/orders/{order}/receipt', [ReceiptController::class, 'show'])
+        ->name('orders.receipt');
+    Route::get('/orders/{order}/receipt/escpos', [ReceiptController::class, 'escpos'])
+        ->name('orders.receipt.escpos');
 
     Route::post('/shifts/open', [ShiftController::class, 'open'])->name('shifts.open');
     Route::post('/shifts/close', [ShiftController::class, 'close'])->name('shifts.close');

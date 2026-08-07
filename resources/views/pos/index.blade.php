@@ -315,6 +315,13 @@
                         return;
                     }
 
+                    const receiptUrl = '{{ url('/orders') }}/' + data.order.id + '/receipt?print=1';
+                    const receiptWindow = window.open(receiptUrl, '_blank');
+
+                    if (!receiptWindow) {
+                        this.errorMessage = 'Struk berhasil dibuat, tetapi popup diblokir browser.';
+                    }
+
                     alert(
                         'Transaksi berhasil: ' + data.order.order_number +
                         (data.change !== null ? '\nKembalian: ' + this.formatRupiah(data.change) : '')
