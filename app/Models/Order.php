@@ -20,6 +20,7 @@ class Order extends Model
         'tax_amount',
         'total_amount',
         'payment_type',
+        'rounding_adjustment',
         'pg_fee',
         'net_received',
         'status',
@@ -29,6 +30,7 @@ class Order extends Model
         'subtotal' => 'decimal:2',
         'tax_amount' => 'decimal:2',
         'total_amount' => 'decimal:2',
+        'rounding_adjustment' => 'decimal:2',
         'pg_fee' => 'decimal:2',
         'net_received' => 'decimal:2',
     ];

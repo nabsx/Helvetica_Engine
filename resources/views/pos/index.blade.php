@@ -105,15 +105,19 @@
             <div class="border-t px-5 py-4 space-y-3 bg-slate-50">
                 <div class="space-y-1 text-sm">
                     <div class="flex justify-between text-slate-600">
-                        <span>Subtotal</span>
-                        <span x-text="formatRupiah(subtotal)"></span>
+                        <span>Total Belanja (nett)</span>
+                        <span x-text="formatRupiah(totalBelanja)"></span>
                     </div>
                     <div class="flex justify-between text-slate-600">
-                        <span>Pajak (10%)</span>
+                        <span>PB1 termasuk (10%)</span>
                         <span x-text="formatRupiah(taxAmount)"></span>
                     </div>
+                    <div class="flex justify-between text-slate-600">
+                        <span>Pembulatan</span>
+                        <span x-text="formatRupiah(roundingAdjustment)"></span>
+                    </div>
                     <div class="flex justify-between font-bold text-slate-800 text-base pt-1 border-t">
-                        <span>Total</span>
+                        <span>Total Bayar</span>
                         <span x-text="formatRupiah(totalAmount)"></span>
                     </div>
                 </div>
@@ -255,12 +259,21 @@
                 return this.cart.reduce((sum, i) => sum + i.price * i.quantity, 0);
             },
 
+            get totalBelanja() {
+                return Math.round(this.subtotal * 100) / 100;
+            },
+
             get taxAmount() {
-                return Math.round(this.subtotal * 0.10);
+                return Math.round((this.totalBelanja - (this.totalBelanja / 1.10)) * 100) / 100;
+            },
+
+            get roundingAdjustment() {
+                if (this.paymentType !== 'CASH') return 0;
+                return Math.round(this.totalBelanja / 500) * 500 - this.totalBelanja;
             },
 
             get totalAmount() {
-                return this.subtotal + this.taxAmount;
+                return this.totalBelanja + this.roundingAdjustment;
             },
 
             get changeAmount() {

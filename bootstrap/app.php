@@ -6,6 +6,7 @@
 // just merge this alias() call into what's already there.
 
 use App\Http\Middleware\EnsureShiftIsOpen;
+use App\Http\Middleware\EnsureUserIsAdmin;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Middleware;
 
@@ -18,6 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->alias([
             'shift.active' => EnsureShiftIsOpen::class,
+            'admin' => EnsureUserIsAdmin::class,
         ]);
     })
     ->withExceptions(function ($exceptions) {
