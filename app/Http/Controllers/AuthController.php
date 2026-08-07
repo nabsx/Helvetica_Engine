@@ -42,9 +42,9 @@ class AuthController extends Controller
 
         // Route each role to its own module. For this MVP only the
         // cashier screen exists; admin/barista fall back to it for now.
-        return match ($user->role) {
-            default => redirect()->route('pos.index'),
-        };
+        return $user->isAdmin()
+            ? redirect()->route('admin.sales-report')
+            : redirect()->route('pos.index');
     }
 
     public function logout(Request $request): RedirectResponse

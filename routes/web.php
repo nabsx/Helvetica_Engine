@@ -4,6 +4,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\PosController;
 use App\Http\Controllers\ShiftController;
+use App\Http\Controllers\SalesReportController;
 use Illuminate\Support\Facades\Route;
 
 // --- Public: staff login (name picker + PIN pad) ---
@@ -15,6 +16,10 @@ Route::middleware('auth')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('pos.logout');
 
     Route::get('/pos', [PosController::class, 'index'])->name('pos.index');
+
+    Route::get('/admin/laporan-penjualan', [SalesReportController::class, 'index'])
+        ->middleware('admin')
+        ->name('admin.sales-report');
 
     Route::post('/shifts/open', [ShiftController::class, 'open'])->name('shifts.open');
     Route::post('/shifts/close', [ShiftController::class, 'close'])->name('shifts.close');
