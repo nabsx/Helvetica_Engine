@@ -1,31 +1,11 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>Laporan Penjualan — Helvetica POS</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="min-h-screen bg-slate-100 text-slate-800">
-    <header class="border-b bg-white">
-        <div class="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-            <div>
-                <p class="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-600">Helvetica POS</p>
-                <h1 class="mt-1 text-2xl font-bold">Laporan Penjualan</h1>
-            </div>
-            <div class="flex items-center gap-3">
-                <span class="text-sm text-slate-500">{{ Auth::user()->name }}</span>
-                <a href="{{ route('pos.index') }}" class="rounded-lg bg-slate-100 px-4 py-2 text-sm font-semibold hover:bg-slate-200">POS</a>
-                <form method="POST" action="{{ route('pos.logout') }}">
-                    @csrf
-                    <button class="rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700">Keluar</button>
-                </form>
-            </div>
-        </div>
-    </header>
+<x-admin-layout title="Laporan Penjualan">
+    <div class="mb-6">
+        <p class="text-sm font-semibold text-emerald-600">Analitik penjualan</p>
+        <h1 class="mt-1 text-3xl font-black tracking-tight">Laporan penjualan</h1>
+        <p class="mt-2 text-sm text-slate-500">Pantau performa transaksi berdasarkan tanggal dan metode pembayaran.</p>
+    </div>
 
-    <main class="mx-auto max-w-7xl space-y-6 px-6 py-8">
+    <main class="space-y-6">
         <form method="GET" action="{{ route('admin.sales-report') }}" class="flex flex-wrap items-end gap-3 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
             <div>
                 <label for="tanggal" class="mb-1 block text-sm font-medium text-slate-600">Tanggal laporan</label>
@@ -82,5 +62,4 @@
             </div>
         </section>
     </main>
-</body>
-</html>
+</x-admin-layout>

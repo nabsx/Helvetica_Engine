@@ -17,11 +17,15 @@ class Product extends Model
         'name',
         'price',
         'image',
+        'stock',
+        'low_stock_threshold',
         'is_available',
     ];
 
     protected $casts = [
         'price' => 'decimal:2',
+        'stock' => 'integer',
+        'low_stock_threshold' => 'integer',
         'is_available' => 'boolean',
     ];
 
@@ -38,6 +42,7 @@ class Product extends Model
     /** Only menu items currently sellable at the counter. */
     public function scopeAvailable(Builder $query): Builder
     {
-        return $query->where('is_available', true);
+        return $query->where('is_available', true)
+            ->where('stock', '>', 0);
     }
 }
