@@ -9,7 +9,6 @@ use App\Models\Product;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Http\Request;
 
 class OrderController extends Controller
 {
@@ -45,10 +44,9 @@ class OrderController extends Controller
                 $subtotal += $lineTotal;
                 $lineItems[] = [
                     'product_id' => $product->id,
-                    'product_name' => $product->name,
                     'quantity' => $quantity,
-                    'unit_price' => $product->price,
-                    'line_total' => $lineTotal,
+                    'price' => $product->price,
+                    'subtotal' => $lineTotal,
                 ];
             }
 
