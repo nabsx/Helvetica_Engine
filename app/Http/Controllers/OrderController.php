@@ -1,4 +1,4 @@
-z`<?php
+<?php
 
 namespace App\Http\Controllers;
 
@@ -11,140 +11,78 @@ use Illuminate\Support\Facades\DB;
 
 class OrderController extends Controller
 {
-    /** Harga produk sudah termasuk PB1 10%. */
     private const TAX_DIVISOR = 1.10;
-
-    /** Standard QRIS MDR. */
     private const QRIS_MDR_RATE = 0.007;
 
     public function store(StoreOrderRequest $request): JsonResponse
     {
         $data = $request->validated();
-        $shift = $request->attributes->get('active_shift');
-        $products = Product::whereIn('id', collect($data['items'])->pluck('product_id'))
-            ->available()
-            ->lockForUpdate()
-            ->get()
-            ->keyBy('id');
+        $productIds = collect($data['items'])->pluck('product_id');
 
-        foreach ($data['items'] as $item) {
-            $product = $products->get($item['product_id']);
+        $result = DB::transaction(function () use ($data, $productIds): Order {
+            $products = Product::query()->whereIn('id', $productIds)->lockForUpdate()->get()->keyBy('id');
+            $lineItems = [];
+            $subtotal = 0;
 
-            if (! $product) {
-                return response()->json([
-                    'message' => "Produk dengan ID {$item['product_id']} tidak tersedia atau stok habis.",
-                ], 422);
+            foreach ($data['items'] as $item) {
+                $product = $products->get($item['product_id']);
+                $quantity = (int) $item['quantity'];
+
+                if (! $product || ! $product->is_available || $product->stock < $quantity) {
+                    abort(422, $product ? "Stok {$product->name} tidak mencukupi." : 'Produk tidak tersedia.');
+                }
+
+                $lineTotal = $quantity * (float) $product->price;
+                $subtotal += $lineTotal;
+                $lineItems[] = [
+                    'product_id' => $product->id,
+                    'product_name' => $product->name,
+                    'quantity' => $quantity,
+                    'unit_price' => $product->price,
+                    'line_total' => $lineTotal,
+                ];
             }
 
-            if ($product->stock < (int) $item['quantity']) {
-                return response()->json([
-                    'message' => "Stok {$product->name} tidak mencukupi. Tersisa {$product->stock} unit.",
-                ], 422);
+            $dpp = round($subtotal / self::TAX_DIVISOR, 2);
+            $tax = round($subtotal - $dpp, 2);
+            $rounding = $data['payment_type'] === 'CASH' ? round($subtotal / 500) * 500 - $subtotal : 0;
+            $total = $subtotal + $rounding;
+            $cashGiven = $data['payment_type'] === 'CASH' ? (float) ($data['cash_given'] ?? 0) : null;
+            $change = $cashGiven === null ? null : $cashGiven - $total;
+
+            if ($cashGiven !== null && $change < 0) {
+                abort(422, 'Uang tunai kurang dari total transaksi.');
             }
-        }
 
-        $lineItems = [];
-        $totalBelanja = 0.0;
-
-        foreach ($data['items'] as $item) {
-            $product = $products[$item['product_id']];
-            $lineSubtotal = round((float) $product->price * (int) $item['quantity'], 2);
-            $totalBelanja += $lineSubtotal;
-
-            $lineItems[] = [
-                'product_id' => $product->id,
-                'quantity' => $item['quantity'],
-                'price' => $product->price,
-                'subtotal' => $lineSubtotal,
-            ];
-        }
-
-        $totalBelanja = round($totalBelanja, 2);
-        $dpp = round($totalBelanja / self::TAX_DIVISOR, 2);
-        $pajak = round($totalBelanja - $dpp, 2);
-        $roundingAdjustment = $this->calculateRoundingAdjustment(
-            $totalBelanja,
-            $data['payment_type']
-        );
-        $totalBayar = round($totalBelanja + $roundingAdjustment, 2);
-
-        $pgFee = $data['payment_type'] === 'QRIS'
-            ? round($totalBayar * self::QRIS_MDR_RATE, 2)
-            : 0.0;
-        $netReceived = round($totalBayar - $pgFee, 2);
-
-        $change = null;
-        if ($data['payment_type'] === 'CASH') {
-            $change = round((float) $data['cash_given'] - $totalBayar, 2);
-
-            if ($change < 0) {
-                return response()->json([
-                    'message' => 'Uang yang dibayarkan kurang dari total tagihan.',
-                ], 422);
-            }
-        }
-
-        $order = DB::transaction(function () use (
-            $lineItems,
-            $totalBelanja,
-            $pajak,
-            $totalBayar,
-            $roundingAdjustment,
-            $data,
-            $pgFee,
-            $netReceived,
-            $change,
-            $shift
-        ): Order {
             $order = Order::create([
-                'order_number' => 'TEMP',
                 'user_id' => Auth::id(),
-                'shift_id' => $shift->id,
-                'subtotal' => $totalBelanja,
-                'tax_amount' => $pajak,
-                'total_amount' => $totalBayar,
+                'shift_id' => $data['shift_id'] ?? null,
+                'subtotal' => $subtotal,
+                'tax_amount' => $tax,
+                'total_amount' => $total,
                 'payment_type' => $data['payment_type'],
-                'rounding_adjustment' => $roundingAdjustment,
-                'cash_given' => $data['payment_type'] === 'CASH' ? $data['cash_given'] : null,
+                'rounding_adjustment' => $rounding,
+                'cash_given' => $cashGiven,
                 'change_amount' => $change,
-                'pg_fee' => $pgFee,
-                'net_received' => $netReceived,
+                'pg_fee' => $data['payment_type'] === 'QRIS' ? round($total * self::QRIS_MDR_RATE, 2) : 0,
+                'net_received' => $total,
                 'status' => 'paid',
             ]);
 
-            $order->update([
-                'order_number' => Order::formatOrderNumber($order->id),
-            ]);
+            $order->update(['order_number' => Order::formatOrderNumber($order->id)]);
             $order->items()->createMany($lineItems);
 
             foreach ($data['items'] as $item) {
-                $product = Product::query()->lockForUpdate()->findOrFail($item['product_id']);
-                $product->decrement('stock', (int) $item['quantity']);
+                $products->get($item['product_id'])->decrement('stock', (int) $item['quantity']);
             }
 
-            return $order;
+            return $order->load('items');
         });
 
         return response()->json([
-            'message' => 'Transaksi berhasil.',
-            'order' => $order->load('items.product'),
-            'calculation' => [
-                'total_belanja' => $totalBelanja,
-                'dpp' => $dpp,
-                'pajak' => $pajak,
-                'rounding_adjustment' => $roundingAdjustment,
-                'total_bayar' => $totalBayar,
-            ],
-            'change' => $change,
+            'message' => 'Transaksi berhasil disimpan.',
+            'order' => $result,
+            'change' => $result->change_amount,
         ], 201);
-    }
-
-    private function calculateRoundingAdjustment(float $totalBelanja, string $paymentType): float
-    {
-        if ($paymentType !== 'CASH') {
-            return 0.0;
-        }
-
-        return round((round($totalBelanja / 500) * 500) - $totalBelanja, 2);
     }
 }

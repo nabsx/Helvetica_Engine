@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AdminCategoryController;
+use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\AdminProductController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\OrderController;
@@ -21,7 +22,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/pos', [PosController::class, 'index'])->name('pos.index');
 
     Route::middleware('admin')->prefix('admin')->name('admin.')->group(function (): void {
+        Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
         Route::get('/laporan-penjualan', [SalesReportController::class, 'index'])->name('sales-report');
+        Route::redirect('/reports', '/admin/dashboard');
         Route::resource('products', AdminProductController::class)->except(['show']);
         Route::resource('categories', AdminCategoryController::class)->only(['index', 'store', 'update', 'destroy']);
     });
