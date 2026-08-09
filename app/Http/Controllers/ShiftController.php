@@ -5,7 +5,9 @@ namespace App\Http\Controllers;
 use App\Http\Requests\CloseShiftRequest;
 use App\Http\Requests\OpenShiftRequest;
 use Illuminate\Http\JsonResponse;
+use App\Services\CashDrawerService;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class ShiftController extends Controller
 {
@@ -18,22 +20,24 @@ class ShiftController extends Controller
     {
         $user = Auth::user();
 
-        if ($user->shifts()->open()->exists()) {
-            return response()->json([
-                'message' => 'Anda masih memiliki shift yang sedang berjalan.',
-            ], 422);
-        }
+        $shift = DB::transaction(function () use ($user, $request) {
+            // A pending_close shift has already been closed by the cashier and
+            // is only waiting for admin review. It must not block the next shift.
+            if ($user->shifts()->where('status', 'open')->lockForUpdate()->exists()) {
+                abort(422, 'Anda masih memiliki shift yang sedang berjalan.');
+            }
 
-        $shift = $user->shifts()->create([
-            'start_time' => now(),
-            'initial_cash' => $request->validated('initial_cash'),
-            'status' => 'open',
-        ]);
+            $openingCash = (float) $request->validated('initial_cash');
+            return $user->shifts()->create([
+                'start_time' => now(),
+                'initial_cash' => $openingCash,
+                'opening_cash' => $openingCash,
+                'opened_by' => $user->id,
+                'status' => 'open',
+            ]);
+        });
 
-        return response()->json([
-            'message' => 'Shift berhasil dibuka.',
-            'shift' => $shift,
-        ], 201);
+        return response()->json(['message' => 'Shift berhasil dibuka.', 'shift' => $shift], 201);
     }
 
     /**
@@ -41,27 +45,23 @@ class ShiftController extends Controller
      * counted cash against the system-expected cash (see Shift model's
      * expected_cash / variance accessors).
      */
-    public function close(CloseShiftRequest $request): JsonResponse
+    public function close(CloseShiftRequest $request, CashDrawerService $cashDrawer): JsonResponse
     {
-        $user = Auth::user();
-
-        $shift = $user->shifts()->open()->latest('start_time')->first();
+        $shift = Auth::user()->shifts()->open()->latest('start_time')->first();
 
         if (! $shift) {
-            return response()->json([
-                'message' => 'Tidak ada shift aktif untuk ditutup.',
-            ], 422);
+            return response()->json(['message' => 'Tidak ada shift aktif untuk ditutup.'], 422);
         }
 
-        $shift->update([
-            'end_time' => now(),
-            'actual_cash' => $request->validated('actual_cash'),
-            'status' => 'closed',
-        ]);
-
+        $closed = $cashDrawer->closeShift($shift, (float) $request->validated('actual_cash'));
         return response()->json([
-            'message' => 'Shift berhasil ditutup.',
-            'shift' => $shift->fresh(), // includes expected_cash & variance via $appends
+            'message' => 'Shift masuk antrean review admin.',
+            'shift' => array_merge($closed->toArray(), [
+                'expected_cash' => $cashDrawer->expected($closed),
+                'variance' => (float) $closed->cash_difference,
+            ]),
+            'expected_cash' => $cashDrawer->expected($closed),
+            'variance' => (float) $closed->cash_difference,
         ]);
     }
 }

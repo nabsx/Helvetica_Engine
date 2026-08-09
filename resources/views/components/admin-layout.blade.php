@@ -24,6 +24,7 @@
                     ['admin.categories.index', 'Kategori'],
                     ['admin.sales-report', 'Laporan'],
                     ['admin.cancellations.index', 'Pembatalan'],
+                    ['admin.shifts.index', 'Cash Monitoring'],
                     ['admin.users.index', 'Staff'],
                     ['pos.index', 'Buka POS'],
                 ] as [$route, $label])

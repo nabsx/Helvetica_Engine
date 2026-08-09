@@ -6,6 +6,7 @@ use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\AdminProductController;
 use App\Http\Controllers\AdminUserController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\CashMonitoringController;
 use App\Http\Controllers\OrderCancellationController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\PosController;
@@ -26,6 +27,9 @@ Route::middleware('auth')->group(function () {
 
     Route::middleware('admin')->prefix('admin')->name('admin.')->group(function (): void {
         Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
+        Route::get('/cash-monitoring', [CashMonitoringController::class, 'index'])->name('shifts.index');
+        Route::get('/shifts/{shift}', [CashMonitoringController::class, 'show'])->name('shifts.show');
+        Route::post('/shifts/{shift}/approve', [CashMonitoringController::class, 'approve'])->name('shifts.approve');
         Route::get('/laporan-penjualan', [SalesReportController::class, 'index'])->name('sales-report');
         Route::redirect('/reports', '/admin/dashboard');
         Route::resource('products', AdminProductController::class)->except(['show']);

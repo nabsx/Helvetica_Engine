@@ -171,7 +171,7 @@
          class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
         <div class="bg-white rounded-2xl p-6 w-full max-w-sm">
             <h3 class="font-bold text-lg mb-1">Buka Shift</h3>
-            <p class="text-sm text-slate-500 mb-4">Masukkan modal kas awal untuk memulai shift.</p>
+            <p class="text-sm text-slate-500 mb-4">Masukkan modal kas awal untuk memulai shift. Nominal boleh lebih kecil dari shift sebelumnya.</p>
             <label class="text-xs text-slate-500">Modal Awal (Rp)</label>
             <input type="number" x-model.number="initialCash" placeholder="0"
                    class="w-full mt-1 mb-4 rounded-lg border-slate-300 px-3 py-2">

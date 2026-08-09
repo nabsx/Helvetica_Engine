@@ -1,0 +1,10 @@
+<x-admin-layout>
+    <div class="space-y-6">
+        <div class="flex flex-wrap items-start justify-between gap-3"><div><h1 class="text-2xl font-bold">Cash Monitoring</h1><p class="text-sm text-gray-500">Active and pending-close cashier shifts</p></div><a href="{{ route('admin.dashboard') }}" class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:border-emerald-300 hover:text-emerald-700">Kembali ke Dashboard</a></div>
+        <div class="overflow-x-auto rounded-lg bg-white shadow">
+            <table class="min-w-full text-sm"><thead><tr class="border-b text-left"><th class="p-4">Cashier</th><th class="p-4">Status</th><th class="p-4">Opening</th><th class="p-4">Expected</th><th class="p-4">Last activity</th><th class="p-4"></th></tr></thead><tbody>
+            @forelse ($shifts as $shift)<tr class="border-b"><td class="p-4 font-medium">{{ $shift->user->name }}<div class="text-xs text-gray-500">Opened by {{ $shift->opener?->name ?? $shift->user->name }}</div></td><td class="p-4">{{ $shift->status }}</td><td class="p-4">Rp {{ number_format((float) $shift->opening_cash, 0, ',', '.') }}</td><td class="p-4">Rp {{ number_format($cashDrawer->expected($shift), 0, ',', '.') }}</td><td class="p-4">{{ optional($shift->cashMovements->last()?->created_at ?? $shift->start_time)->timezone('Asia/Jakarta')->diffForHumans() }}</td><td class="p-4"><div class="flex flex-wrap items-center gap-3"><a class="text-blue-600 underline" href="{{ route('admin.shifts.show', $shift) }}">Detail</a>@if($shift->status === 'pending_close')<form method="POST" action="{{ route('admin.shifts.approve', $shift) }}" onsubmit="return confirm('Approve shift ini?')">@csrf<button type="submit" class="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-emerald-700">Approve</button></form>@endif</div></td></tr>@empty<tr><td class="p-4" colspan="6">Tidak ada shift aktif.</td></tr>@endforelse
+            </tbody></table>
+        </div>
+    </div>
+</x-admin-layout>

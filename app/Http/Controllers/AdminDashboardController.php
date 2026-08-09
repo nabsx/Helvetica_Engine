@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Order;
 use App\Models\Product;
+use App\Models\Shift;
 use Carbon\Carbon;
 use Illuminate\View\View;
 
@@ -21,6 +22,7 @@ class AdminDashboardController extends Controller
             'cash' => $payments->get('CASH', 0),
             'qris' => $payments->get('QRIS', 0),
             'lowStock' => Product::query()->whereColumn('stock', '<=', 'low_stock_threshold')->with('category')->orderBy('stock')->limit(5)->get(),
+            'activeShifts' => Shift::query()->whereIn('status', ['open', 'pending_close'])->with('user')->latest('start_time')->get(),
         ]);
     }
 }

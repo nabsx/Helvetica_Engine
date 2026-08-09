@@ -4,7 +4,13 @@
     <x-admin-layout title="Dashboard Admin">
         <div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
             <div><p class="text-sm font-semibold text-emerald-600">Ringkasan operasional</p><h1 class="mt-1 text-3xl font-black tracking-tight">Dashboard admin</h1><p class="mt-2 text-sm text-slate-500">Pantau penjualan dan stok dalam satu layar.</p></div>
-            <a href="{{ route('admin.products.create') }}" class="rounded-xl bg-emerald-600 px-4 py-2 text-center text-sm font-bold text-white hover:bg-emerald-700">Tambah produk</a>
+            <div class="flex flex-wrap gap-2">
+                <a href="{{ route('admin.shifts.index') }}" class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-center text-sm font-bold text-slate-700 shadow-sm hover:border-emerald-300 hover:text-emerald-700">Cash monitoring</a>
+                @if(isset($activeShifts) && $activeShifts->isNotEmpty())
+                    <a href="{{ route('admin.shifts.show', $activeShifts->first()) }}" class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-center text-sm font-bold text-slate-700 shadow-sm hover:border-emerald-300 hover:text-emerald-700">Detail shift</a>
+                @endif
+                <a href="{{ route('admin.products.create') }}" class="rounded-xl bg-emerald-600 px-4 py-2 text-center text-sm font-bold text-white hover:bg-emerald-700">Tambah produk</a>
+            </div>
         </div>
         <div class="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             @foreach([['Transaksi', $summary->total_transaksi ?? 0], ['Pendapatan kotor', 'Rp'.number_format($summary->gross ?? 0, 0, ',', '.')], ['PB1 terkumpul', 'Rp'.number_format($summary->pajak ?? 0, 0, ',', '.')], ['Pendapatan bersih', 'Rp'.number_format($summary->dpp ?? 0, 0, ',', '.')]] as [$label, $value])

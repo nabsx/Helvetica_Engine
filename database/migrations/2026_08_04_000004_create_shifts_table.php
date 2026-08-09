@@ -15,7 +15,7 @@ return new class extends Migration
             $table->dateTime('end_time')->nullable();
             $table->decimal('initial_cash', 12, 2);
             $table->decimal('actual_cash', 12, 2)->nullable();
-            $table->enum('status', ['open', 'closed'])->default('open');
+            $table->enum('status', ['open', 'pending_close', 'closed', 'approved'])->default('open');
             $table->timestamps();
 
             // "Does this cashier have an open shift?" is checked on every

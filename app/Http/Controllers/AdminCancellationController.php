@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Order;
 use App\Models\OrderCancellationRequest;
 use App\Models\Product;
+use App\Services\CashDrawerService;
+use App\Services\ActivityLogService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -35,7 +37,7 @@ class AdminCancellationController extends Controller
      * restored line-by-line with the same row-locking pattern OrderController
      * uses when it deducts stock, so a restock can never race a concurrent sale.
      */
-    public function approve(Request $request, OrderCancellationRequest $cancellationRequest): RedirectResponse
+    public function approve(Request $request, OrderCancellationRequest $cancellationRequest, CashDrawerService $cashDrawer, ActivityLogService $activityLogs): RedirectResponse
     {
         $data = $request->validate([
             'admin_note' => ['nullable', 'string', 'max:500'],
@@ -53,6 +55,11 @@ class AdminCancellationController extends Controller
             }
 
             $order->update(['status' => 'cancelled']);
+
+            if ($order->payment_type === 'CASH' && $order->shift) {
+                $cashDrawer->recordMovement($order->shift, Auth::id(), 'out', (float) $order->total_amount, 'refund', 'Refund Order #'.$order->order_number, Order::class, $order->id);
+            }
+            $activityLogs->record('order.refunded', $order, ['amount' => $order->total_amount, 'payment_type' => $order->payment_type]);
 
             $items = $order->items()->get();
             $products = Product::query()
