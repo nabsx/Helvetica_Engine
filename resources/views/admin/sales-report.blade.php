@@ -16,6 +16,9 @@
             </div>
             <div class="flex items-center gap-3">
                 <span class="text-sm text-slate-500">{{ Auth::user()->name }}</span>
+                <a href="{{ route('admin.products.index') }}" class="rounded-lg bg-emerald-100 px-4 py-2 text-sm font-semibold text-emerald-800 hover:bg-emerald-200">Produk</a>
+                <a href="{{ route('admin.products.create') }}" class="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700">+ Produk</a>
+                <a href="{{ route('admin.categories.index') }}" class="rounded-lg bg-slate-100 px-4 py-2 text-sm font-semibold hover:bg-slate-200">Kategori</a>
                 <a href="{{ route('pos.index') }}" class="rounded-lg bg-slate-100 px-4 py-2 text-sm font-semibold hover:bg-slate-200">POS</a>
                 <form method="POST" action="{{ route('pos.logout') }}">
                     @csrf
