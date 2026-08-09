@@ -63,7 +63,10 @@ class OrderController extends Controller
                 abort(422, 'Uang tunai kurang dari total transaksi.');
             }
 
+            $orderNumber = 'HLV-'.now()->format('YmdHis').'-'.strtoupper(bin2hex(random_bytes(3)));
+
             $order = Order::create([
+                'order_number' => $orderNumber,
                 'user_id' => Auth::id(),
                 'shift_id' => $activeShift->id,
                 'subtotal' => $subtotal,
@@ -78,7 +81,6 @@ class OrderController extends Controller
                 'status' => 'paid',
             ]);
 
-            $order->update(['order_number' => Order::formatOrderNumber($order->id)]);
             $order->items()->createMany($lineItems);
 
             foreach ($data['items'] as $item) {

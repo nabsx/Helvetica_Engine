@@ -1,15 +1,5 @@
-<!doctype html>
-<html lang="id">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>Inventory Produk — Helvetica POS</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="min-h-screen bg-slate-100 text-slate-900">
-<div class="mx-auto max-w-7xl px-6 py-8">
-    <nav class="mb-6 flex flex-wrap gap-2 text-sm"><a href="{{ route('admin.dashboard') }}" class="rounded-lg bg-white px-3 py-2 font-semibold text-slate-600 shadow-sm">Dashboard</a><a href="{{ route('admin.categories.index') }}" class="rounded-lg bg-white px-3 py-2 font-semibold text-slate-600 shadow-sm">Kategori</a><a href="{{ route('pos.index') }}" class="rounded-lg bg-white px-3 py-2 font-semibold text-slate-600 shadow-sm">POS</a></nav>
+<x-admin-layout title="Produk">
+<div class="max-w-7xl">
     <header class="flex flex-col justify-between gap-4 md:flex-row md:items-center">
         <div><p class="text-sm font-semibold uppercase tracking-widest text-emerald-600">Admin panel</p><h1 class="mt-1 text-3xl font-black">Inventory produk</h1><p class="mt-1 text-sm text-slate-500">Kelola harga, stok, gambar, dan status menu.</p></div>
         <div class="flex gap-2"><a href="{{ route('admin.categories.index') }}" class="rounded-xl bg-white px-4 py-3 text-sm font-semibold shadow-sm">Kategori</a><a href="{{ route('admin.products.create') }}" class="rounded-xl bg-slate-900 px-4 py-3 text-sm font-bold text-white">+ Tambah produk</a></div>
@@ -36,5 +26,4 @@
     </div>
     <div class="mt-6">{{ $products->links() }}</div>
 </div>
-</body>
-</html>
+</x-admin-layout>
