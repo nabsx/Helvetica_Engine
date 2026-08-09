@@ -14,15 +14,24 @@
             <div class="flex items-center justify-between px-6 py-5">
                 <a href="{{ route('admin.dashboard') }}" class="text-lg font-black tracking-tight">Helvetica <span class="text-emerald-600">POS</span></a>
             </div>
+            @php
+                $pendingCancellations = \App\Models\OrderCancellationRequest::query()->pending()->count();
+            @endphp
             <nav class="flex gap-2 overflow-x-auto px-4 pb-4 lg:block lg:space-y-1 lg:px-3">
                 @foreach([
                     ['admin.dashboard', 'Dashboard'],
                     ['admin.products.index', 'Produk'],
                     ['admin.categories.index', 'Kategori'],
                     ['admin.sales-report', 'Laporan'],
+                    ['admin.cancellations.index', 'Pembatalan'],
                     ['pos.index', 'Buka POS'],
                 ] as [$route, $label])
-                    <a href="{{ route($route) }}" class="block whitespace-nowrap rounded-xl px-3 py-2.5 text-sm font-semibold {{ request()->routeIs($route) ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600 hover:bg-slate-50' }}">{{ $label }}</a>
+                    <a href="{{ route($route) }}" class="flex items-center justify-between whitespace-nowrap rounded-xl px-3 py-2.5 text-sm font-semibold {{ request()->routeIs($route) ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600 hover:bg-slate-50' }}">
+                        <span>{{ $label }}</span>
+                        @if($route === 'admin.cancellations.index' && $pendingCancellations > 0)
+                            <span class="ml-2 rounded-full bg-red-600 px-2 py-0.5 text-xs font-bold text-white">{{ $pendingCancellations }}</span>
+                        @endif
+                    </a>
                 @endforeach
             </nav>
             <div class="hidden border-t border-slate-100 p-4 lg:block">

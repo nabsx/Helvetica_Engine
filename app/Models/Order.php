@@ -54,9 +54,20 @@ class Order extends Model
         return $this->hasMany(OrderItem::class);
     }
 
+    public function cancellationRequests(): HasMany
+    {
+        return $this->hasMany(OrderCancellationRequest::class);
+    }
+
     public function scopePaid(Builder $query): Builder
     {
         return $query->where('status', 'paid');
+    }
+
+    /** Whether this order already has a cancellation request awaiting admin review. */
+    public function hasPendingCancellationRequest(): bool
+    {
+        return $this->cancellationRequests()->where('status', 'pending')->exists();
     }
 
     /**

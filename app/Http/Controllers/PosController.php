@@ -16,6 +16,27 @@ class PosController extends Controller
 
         $activeShift = Auth::user()->shifts()->open()->latest('start_time')->first();
 
-        return view('pos.index', compact('categories', 'activeShift'));
+        // Recent transactions from THIS shift only, so a cashier can pick
+        // one to request a cancellation for. Whether it's still eligible
+        // (paid, no pending request yet) is flagged here rather than
+        // recomputed in Alpine, so the frontend stays dumb about the rules.
+        $recentOrders = $activeShift
+            ? $activeShift->orders()
+                ->with(['cancellationRequests' => fn ($q) => $q->pending()])
+                ->latest()
+                ->limit(20)
+                ->get()
+                ->map(fn ($order) => [
+                    'id' => $order->id,
+                    'order_number' => $order->order_number,
+                    'total_amount' => $order->total_amount,
+                    'status' => $order->status,
+                    'created_at' => $order->created_at->format('H:i'),
+                    'can_request_cancellation' => $order->status === 'paid' && $order->cancellationRequests->isEmpty(),
+                    'has_pending_cancellation' => $order->status === 'paid' && $order->cancellationRequests->isNotEmpty(),
+                ])
+            : collect();
+
+        return view('pos.index', compact('categories', 'activeShift', 'recentOrders'));
     }
 }

@@ -18,6 +18,10 @@
         <h1 class="text-lg font-bold text-slate-800">Helvetica POS <span class="text-slate-400 font-normal">/ Kasir</span></h1>
         <div class="flex items-center gap-3">
             <span class="text-sm text-slate-500">{{ Auth::user()->name }} ({{ ucfirst(Auth::user()->role) }})</span>
+            <button @click="transactionsModalOpen = true"
+                    class="text-sm bg-slate-100 text-slate-600 hover:bg-slate-200 rounded-lg px-3 py-1.5 font-medium">
+                Riwayat Transaksi
+            </button>
             <button @click="closeShiftModalOpen = true"
                     class="text-sm bg-red-50 text-red-600 hover:bg-red-100 rounded-lg px-3 py-1.5 font-medium">
                 Tutup Shift
@@ -195,6 +199,68 @@
             </div>
         </div>
     </div>
+
+    {{-- Transaction history modal — pick an order to request cancellation for --}}
+    <div x-show="transactionsModalOpen" x-cloak
+         class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-2xl p-6 w-full max-w-md max-h-[80vh] flex flex-col">
+            <div class="flex items-center justify-between mb-1">
+                <h3 class="font-bold text-lg">Riwayat Transaksi Shift Ini</h3>
+                <button @click="transactionsModalOpen = false" class="text-slate-400 hover:text-slate-600">✕</button>
+            </div>
+            <p class="text-sm text-slate-500 mb-4">Pembatalan perlu disetujui admin sebelum transaksi benar-benar batal.</p>
+
+            <div class="flex-1 overflow-y-auto space-y-2">
+                <template x-if="recentOrders.length === 0">
+                    <p class="text-sm text-slate-400 text-center mt-6">Belum ada transaksi pada shift ini.</p>
+                </template>
+                <template x-for="order in recentOrders" :key="order.id">
+                    <div class="border border-slate-100 rounded-xl p-3 flex items-center justify-between gap-3">
+                        <div class="min-w-0">
+                            <p class="text-sm font-semibold text-slate-800 truncate" x-text="order.order_number"></p>
+                            <p class="text-xs text-slate-400" x-text="order.created_at + ' · ' + formatRupiah(order.total_amount)"></p>
+                        </div>
+                        <template x-if="order.status === 'cancelled'">
+                            <span class="text-xs font-semibold text-slate-400 whitespace-nowrap">Dibatalkan</span>
+                        </template>
+                        <template x-if="order.has_pending_cancellation">
+                            <span class="text-xs font-semibold text-amber-600 whitespace-nowrap">Menunggu Admin</span>
+                        </template>
+                        <template x-if="order.can_request_cancellation">
+                            <button @click="openCancellationForm(order)"
+                                    class="text-xs font-semibold text-red-600 hover:text-red-700 whitespace-nowrap shrink-0">
+                                Ajukan Pembatalan
+                            </button>
+                        </template>
+                    </div>
+                </template>
+            </div>
+        </div>
+    </div>
+
+    {{-- Cancellation request form modal --}}
+    <div x-show="cancellationModalOpen" x-cloak
+         class="fixed inset-0 bg-black/60 flex items-center justify-center z-[60]">
+        <div class="bg-white rounded-2xl p-6 w-full max-w-sm">
+            <h3 class="font-bold text-lg mb-1">Ajukan Pembatalan</h3>
+            <p class="text-sm text-slate-500 mb-4">
+                Transaksi <span class="font-semibold" x-text="cancellingOrder?.order_number"></span> akan tetap
+                berstatus paid sampai admin menyetujui pengajuan ini.
+            </p>
+            <label class="text-xs text-slate-500">Alasan Pembatalan</label>
+            <textarea x-model="cancellationReason" rows="3" placeholder="Contoh: Salah input menu, pelanggan batal."
+                      class="w-full mt-1 mb-1 rounded-lg border-slate-300 px-3 py-2 text-sm"></textarea>
+            <p class="text-xs text-red-500 mb-3" x-show="cancellationError" x-text="cancellationError"></p>
+            <div class="flex gap-2">
+                <button @click="cancellationModalOpen = false"
+                        class="flex-1 bg-slate-100 hover:bg-slate-200 rounded-xl py-3 font-semibold">Batal</button>
+                <button @click="requestCancellation()" :disabled="submitting"
+                        class="flex-1 bg-red-600 hover:bg-red-500 text-white rounded-xl py-3 font-bold disabled:opacity-40">
+                    Kirim Pengajuan
+                </button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -213,6 +279,13 @@
             closeShiftModalOpen: false,
             initialCash: 0,
             actualCash: 0,
+
+            recentOrders: @json($recentOrders),
+            transactionsModalOpen: false,
+            cancellationModalOpen: false,
+            cancellingOrder: null,
+            cancellationReason: '',
+            cancellationError: '',
 
             init() {
                 if (!this.hasActiveShift) {
@@ -390,6 +463,49 @@
                         '\nVariance: ' + this.formatRupiah(data.shift.variance)
                     );
                     document.getElementById('logoutForm').submit(); // shift closed -> log the cashier out instead of re-rendering the POS page
+                } finally {
+                    this.submitting = false;
+                }
+            },
+
+            openCancellationForm(order) {
+                this.cancellingOrder = order;
+                this.cancellationReason = '';
+                this.cancellationError = '';
+                this.transactionsModalOpen = false;
+                this.cancellationModalOpen = true;
+            },
+
+            async requestCancellation() {
+                if (!this.cancellingOrder) return;
+                this.cancellationError = '';
+                this.submitting = true;
+                try {
+                    const res = await fetch('{{ url('/orders') }}/' + this.cancellingOrder.id + '/cancellation-requests', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                            'Accept': 'application/json',
+                        },
+                        body: JSON.stringify({ reason: this.cancellationReason }),
+                    });
+                    const data = await res.json();
+                    if (!res.ok) {
+                        this.cancellationError = data.message || 'Pengajuan gagal, coba lagi.';
+                        return;
+                    }
+                    // Reflect the new pending state locally so the history
+                    // list updates without a full page reload.
+                    const order = this.recentOrders.find(o => o.id === this.cancellingOrder.id);
+                    if (order) {
+                        order.can_request_cancellation = false;
+                        order.has_pending_cancellation = true;
+                    }
+                    this.cancellationModalOpen = false;
+                    alert('Pengajuan pembatalan terkirim. Menunggu persetujuan admin.');
+                } catch (e) {
+                    this.cancellationError = 'Terjadi kesalahan jaringan, coba lagi.';
                 } finally {
                     this.submitting = false;
                 }
