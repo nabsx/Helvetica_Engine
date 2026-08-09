@@ -5,12 +5,15 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreOrderRequest;
 use App\Models\Order;
 use App\Models\Product;
+use App\Services\ActivityLogService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class OrderController extends Controller
 {
+    public function __construct(private readonly ActivityLogService $activityLogs) {}
+
     private const TAX_DIVISOR = 1.10;
     private const QRIS_MDR_RATE = 0.007;
 
@@ -84,7 +87,10 @@ class OrderController extends Controller
                 $products->get($item['product_id'])->decrement('stock', (int) $item['quantity']);
             }
 
-            return $order->load('items');
+            $order = $order->load('items');
+            $this->activityLogs->record('order.created', $order, ['total_amount' => $order->total_amount, 'payment_type' => $order->payment_type]);
+
+            return $order;
         });
 
         return response()->json([

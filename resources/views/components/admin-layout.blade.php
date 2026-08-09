@@ -24,6 +24,7 @@
                     ['admin.categories.index', 'Kategori'],
                     ['admin.sales-report', 'Laporan'],
                     ['admin.cancellations.index', 'Pembatalan'],
+                    ['admin.users.index', 'Staff'],
                     ['pos.index', 'Buka POS'],
                 ] as [$route, $label])
                     <a href="{{ route($route) }}" class="flex items-center justify-between whitespace-nowrap rounded-xl px-3 py-2.5 text-sm font-semibold {{ request()->routeIs($route) ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600 hover:bg-slate-50' }}">

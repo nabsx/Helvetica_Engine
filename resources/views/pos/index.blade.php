@@ -8,10 +8,12 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <style>[x-cloak] { display: none !important; }</style>
+    @livewireStyles
 </head>
 <body class="bg-slate-100 h-screen overflow-hidden">
 
 <div x-data="posApp()" x-init="init()" class="h-screen flex flex-col">
+    @livewire('pos-realtime', ['shiftId' => $activeShift?->id])
 
     {{-- Top bar --}}
     <header class="bg-white border-b px-6 py-3 flex items-center justify-between shrink-0">
@@ -291,6 +293,18 @@
                 if (!this.hasActiveShift) {
                     this.openShiftModalOpen = true;
                 }
+
+                window.addEventListener('pos-data-refreshed', (event) => {
+                    const categories = event.detail?.categories;
+                    if (!categories) return;
+
+                    this.categories = categories;
+                    const currentProducts = new Map(this.allProducts.map(product => [product.id, product]));
+                    this.cart = this.cart
+                        .map(item => ({ ...item, stock: currentProducts.get(item.product_id)?.stock ?? 0 }))
+                        .filter(item => item.stock > 0)
+                        .map(item => ({ ...item, quantity: Math.min(item.quantity, item.stock) }));
+                });
             },
 
             get allProducts() {
@@ -513,5 +527,6 @@
         };
     }
 </script>
+@livewireScripts
 </body>
 </html>

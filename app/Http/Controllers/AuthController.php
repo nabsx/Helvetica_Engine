@@ -33,6 +33,10 @@ class AuthController extends Controller
 
         $user = User::findOrFail($request->user_id);
 
+        if (! $user->is_active) {
+            return back()->withErrors(['pin' => 'Akun tidak aktif. Hubungi admin.']);
+        }
+
         if (! Hash::check($request->pin, $user->pin)) {
             return back()->withErrors(['pin' => 'PIN salah.']);
         }

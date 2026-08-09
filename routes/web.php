@@ -4,6 +4,7 @@ use App\Http\Controllers\AdminCancellationController;
 use App\Http\Controllers\AdminCategoryController;
 use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\AdminProductController;
+use App\Http\Controllers\AdminUserController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\OrderCancellationController;
 use App\Http\Controllers\OrderController;
@@ -29,6 +30,13 @@ Route::middleware('auth')->group(function () {
         Route::redirect('/reports', '/admin/dashboard');
         Route::resource('products', AdminProductController::class)->except(['show']);
         Route::resource('categories', AdminCategoryController::class)->only(['index', 'store', 'update', 'destroy']);
+        Route::get('/users', [AdminUserController::class, 'index'])->name('users.index');
+        Route::post('/users', [AdminUserController::class, 'store'])->name('users.store');
+        Route::put('/users/{user}', [AdminUserController::class, 'update'])->name('users.update');
+        Route::patch('/users/{user}/reset-pin', [AdminUserController::class, 'resetPin'])->name('users.reset-pin');
+        Route::patch('/users/{user}/activate', [AdminUserController::class, 'activate'])->name('users.activate');
+        Route::patch('/users/{user}/deactivate', [AdminUserController::class, 'deactivate'])->name('users.deactivate');
+        Route::delete('/users/{user}', [AdminUserController::class, 'destroy'])->name('users.destroy');
 
         // Cancellation approval queue — approving is the ONLY way an
         // order's status becomes 'cancelled'. A cashier's request alone
