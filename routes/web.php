@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\AdminCategoryController;
+use App\Http\Controllers\AdminProductController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\PosController;
@@ -18,9 +20,11 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/pos', [PosController::class, 'index'])->name('pos.index');
 
-    Route::get('/admin/laporan-penjualan', [SalesReportController::class, 'index'])
-        ->middleware('admin')
-        ->name('admin.sales-report');
+    Route::middleware('admin')->prefix('admin')->name('admin.')->group(function (): void {
+        Route::get('/laporan-penjualan', [SalesReportController::class, 'index'])->name('sales-report');
+        Route::resource('products', AdminProductController::class)->except(['show']);
+        Route::resource('categories', AdminCategoryController::class)->only(['index', 'store', 'update', 'destroy']);
+    });
 
     Route::get('/orders/{order}/receipt', [ReceiptController::class, 'show'])
         ->name('orders.receipt');

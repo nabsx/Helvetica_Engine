@@ -54,7 +54,8 @@
                 <div class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4">
                     <template x-for="product in filteredProducts" :key="product.id">
                         <button @click="addToCart(product)"
-                                class="bg-white rounded-xl shadow-sm hover:shadow-md hover:-translate-y-0.5 transition overflow-hidden text-left">
+                                :disabled="product.stock <= 0"
+                                class="bg-white rounded-xl shadow-sm hover:shadow-md hover:-translate-y-0.5 transition overflow-hidden text-left disabled:cursor-not-allowed disabled:opacity-50">
                             <div class="h-28 bg-slate-200 flex items-center justify-center text-slate-400 text-sm">
                                 <template x-if="product.image">
                                     <img :src="product.image" class="w-full h-full object-cover">
@@ -66,6 +67,7 @@
                             <div class="p-3">
                                 <p class="font-semibold text-slate-800 text-sm truncate" x-text="product.name"></p>
                                 <p class="text-emerald-600 font-bold text-sm mt-1" x-text="formatRupiah(product.price)"></p>
+                                <p class="text-xs mt-1" :class="product.stock <= product.low_stock_threshold ? 'text-amber-600 font-semibold' : 'text-slate-400'" x-text="'Stok: ' + product.stock"></p>
                             </div>
                         </button>
                     </template>
@@ -92,7 +94,7 @@
                             <div class="flex items-center gap-2 mt-2">
                                 <button @click="decQty(index)" class="w-6 h-6 rounded-full bg-slate-100 hover:bg-slate-200 text-sm font-bold">−</button>
                                 <span class="text-sm font-semibold w-5 text-center" x-text="item.quantity"></span>
-                                <button @click="incQty(index)" class="w-6 h-6 rounded-full bg-slate-100 hover:bg-slate-200 text-sm font-bold">+</button>
+                                <button @click="incQty(index)" :disabled="item.quantity >= item.stock" class="w-6 h-6 rounded-full bg-slate-100 hover:bg-slate-200 text-sm font-bold disabled:opacity-40">+</button>
                                 <button @click="removeItem(index)" class="ml-2 text-xs text-red-400 hover:text-red-600">Hapus</button>
                             </div>
                         </div>
@@ -231,19 +233,23 @@
             addToCart(product) {
                 const existing = this.cart.find(i => i.product_id === product.id);
                 if (existing) {
+                    if (existing.quantity >= product.stock) return;
                     existing.quantity++;
                 } else {
                     this.cart.push({
                         product_id: product.id,
                         name: product.name,
                         price: parseFloat(product.price),
+                        stock: product.stock,
                         quantity: 1,
                     });
                 }
             },
 
             incQty(index) {
-                this.cart[index].quantity++;
+                if (this.cart[index].quantity < this.cart[index].stock) {
+                    this.cart[index].quantity++;
+                }
             },
 
             decQty(index) {

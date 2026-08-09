@@ -23,13 +23,22 @@ class OrderController extends Controller
         $shift = $request->attributes->get('active_shift');
         $products = Product::whereIn('id', collect($data['items'])->pluck('product_id'))
             ->available()
+            ->lockForUpdate()
             ->get()
             ->keyBy('id');
 
         foreach ($data['items'] as $item) {
-            if (! $products->has($item['product_id'])) {
+            $product = $products->get($item['product_id']);
+
+            if (! $product) {
                 return response()->json([
-                    'message' => "Produk dengan ID {$item['product_id']} tidak tersedia.",
+                    'message' => "Produk dengan ID {$item['product_id']} tidak tersedia atau stok habis.",
+                ], 422);
+            }
+
+            if ($product->stock < (int) $item['quantity']) {
+                return response()->json([
+                    'message' => "Stok {$product->name} tidak mencukupi. Tersisa {$product->stock} unit.",
                 ], 422);
             }
         }
@@ -107,6 +116,11 @@ class OrderController extends Controller
                 'order_number' => Order::formatOrderNumber($order->id),
             ]);
             $order->items()->createMany($lineItems);
+
+            foreach ($data['items'] as $item) {
+                $product = Product::query()->lockForUpdate()->findOrFail($item['product_id']);
+                $product->decrement('stock', (int) $item['quantity']);
+            }
 
             return $order;
         });

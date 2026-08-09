@@ -10,7 +10,9 @@ class PosController extends Controller
 {
     public function index(): View
     {
-        $categories = Category::with(['products' => fn ($q) => $q->available()])->get();
+        $categories = Category::with(['products' => fn ($q) => $q->available()])
+            ->whereHas('products', fn ($q) => $q->available())
+            ->get();
 
         $activeShift = Auth::user()->shifts()->open()->latest('start_time')->first();
 
