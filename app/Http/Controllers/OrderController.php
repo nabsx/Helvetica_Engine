@@ -1,3 +1,4 @@
+
 <?php
 
 namespace App\Http\Controllers;
@@ -8,6 +9,7 @@ use App\Models\Product;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Http\Request;
 
 class OrderController extends Controller
 {
@@ -17,9 +19,16 @@ class OrderController extends Controller
     public function store(StoreOrderRequest $request): JsonResponse
     {
         $data = $request->validated();
+        $activeShift = $request->attributes->get('active_shift');
+
+        if (! $activeShift) {
+            return response()->json([
+                'message' => 'Tidak ada shift aktif. Silakan buka shift terlebih dahulu.',
+            ], 422);
+        }
         $productIds = collect($data['items'])->pluck('product_id');
 
-        $result = DB::transaction(function () use ($data, $productIds): Order {
+        $result = DB::transaction(function () use ($data, $productIds, $activeShift): Order {
             $products = Product::query()->whereIn('id', $productIds)->lockForUpdate()->get()->keyBy('id');
             $lineItems = [];
             $subtotal = 0;
@@ -56,7 +65,7 @@ class OrderController extends Controller
 
             $order = Order::create([
                 'user_id' => Auth::id(),
-                'shift_id' => $data['shift_id'] ?? null,
+                'shift_id' => $activeShift->id,
                 'subtotal' => $subtotal,
                 'tax_amount' => $tax,
                 'total_amount' => $total,
