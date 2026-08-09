@@ -22,7 +22,7 @@
                     class="text-sm bg-red-50 text-red-600 hover:bg-red-100 rounded-lg px-3 py-1.5 font-medium">
                 Tutup Shift
             </button>
-            <form method="POST" action="{{ route('pos.logout') }}">
+            <form id="logoutForm" method="POST" action="{{ route('pos.logout') }}">
                 @csrf
                 <button class="text-sm bg-slate-100 hover:bg-slate-200 rounded-lg px-3 py-1.5 font-medium">Keluar</button>
             </form>
@@ -389,7 +389,7 @@
                         '\nActual: ' + this.formatRupiah(data.shift.actual_cash) +
                         '\nVariance: ' + this.formatRupiah(data.shift.variance)
                     );
-                    window.location.reload(); // re-render page so the "open shift" modal reappears for the next shift
+                    document.getElementById('logoutForm').submit(); // shift closed -> log the cashier out instead of re-rendering the POS page
                 } finally {
                     this.submitting = false;
                 }
