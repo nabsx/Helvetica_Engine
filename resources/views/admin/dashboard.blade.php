@@ -1,5 +1,7 @@
 @if(class_exists(\Livewire\Livewire::class))
-    <livewire:admin-dashboard />
+    <x-admin-layout title="Dashboard Admin">
+        <livewire:admin-dashboard />
+    </x-admin-layout>
 @else
     <x-admin-layout title="Dashboard Admin">
         <div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
