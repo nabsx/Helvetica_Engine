@@ -85,6 +85,11 @@ class AdminProductController extends Controller
             'category_id' => ['required', 'exists:categories,id'],
             'name' => ['required', 'string', 'max:120'],
             'price' => ['required', 'numeric', 'min:0'],
+            'cost_price' => ['required', 'numeric', 'min:0', 'lte:price'],
+            'tax_name' => ['required', 'string', 'max:80'],
+            'tax_code' => ['required', 'string', 'max:40'],
+            'tax_rate' => ['required', 'numeric', 'min:0', 'max:100'],
+            'tax_included' => ['nullable', 'boolean'],
             'stock' => ['required', 'integer', 'min:0'],
             'low_stock_threshold' => ['required', 'integer', 'min:0', 'max:1000000'],
             'is_available' => ['nullable', 'boolean'],
@@ -92,6 +97,7 @@ class AdminProductController extends Controller
         ]);
 
         $data['is_available'] = $request->boolean('is_available');
+        $data['tax_included'] = $request->boolean('tax_included');
 
         if ($request->hasFile('image')) {
             $data['image'] = '/storage/'.$request->file('image')->store('products', 'public');

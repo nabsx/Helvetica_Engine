@@ -1,67 +1,10 @@
 @php($isEdit = $product->exists)
-
 <div class="grid gap-6 lg:grid-cols-[1fr_360px]">
-    <section class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div class="grid gap-5 sm:grid-cols-2">
-            <label class="sm:col-span-2">
-                <span class="text-sm font-semibold text-slate-700">Nama produk</span>
-                <input name="name" value="{{ old('name', $product->name) }}" required class="mt-2 w-full rounded-xl border-slate-300 px-4 py-3">
-                @error('name')<span class="mt-1 block text-xs text-red-600">{{ $message }}</span>@enderror
-            </label>
-
-            <label>
-                <span class="text-sm font-semibold text-slate-700">Kategori</span>
-                <select name="category_id" required class="mt-2 w-full rounded-xl border-slate-300 px-4 py-3">
-                    <option value="">Pilih kategori</option>
-                    @foreach($categories as $category)
-                        <option value="{{ $category->id }}" @selected(old('category_id', $product->category_id) == $category->id)>{{ $category->name }}</option>
-                    @endforeach
-                </select>
-                @error('category_id')<span class="mt-1 block text-xs text-red-600">{{ $message }}</span>@enderror
-            </label>
-
-            <label>
-                <span class="text-sm font-semibold text-slate-700">Harga nett</span>
-                <input type="number" name="price" min="0" step="0.01" value="{{ old('price', $product->price) }}" required class="mt-2 w-full rounded-xl border-slate-300 px-4 py-3">
-                @error('price')<span class="mt-1 block text-xs text-red-600">{{ $message }}</span>@enderror
-            </label>
-
-            <label>
-                <span class="text-sm font-semibold text-slate-700">Stok</span>
-                <input type="number" name="stock" min="0" value="{{ old('stock', $product->stock) }}" required class="mt-2 w-full rounded-xl border-slate-300 px-4 py-3">
-                @error('stock')<span class="mt-1 block text-xs text-red-600">{{ $message }}</span>@enderror
-            </label>
-
-            <label>
-                <span class="text-sm font-semibold text-slate-700">Batas stok rendah</span>
-                <input type="number" name="low_stock_threshold" min="0" value="{{ old('low_stock_threshold', $product->low_stock_threshold) }}" required class="mt-2 w-full rounded-xl border-slate-300 px-4 py-3">
-                @error('low_stock_threshold')<span class="mt-1 block text-xs text-red-600">{{ $message }}</span>@enderror
-            </label>
-        </div>
-
-        <label class="mt-5 flex items-center gap-3 rounded-xl bg-slate-50 p-4">
-            <input type="checkbox" name="is_available" value="1" @checked(old('is_available', $product->is_available)) class="h-4 w-4 rounded border-slate-300 text-emerald-600">
-            <span>
-                <span class="block text-sm font-semibold text-slate-800">Tampilkan di POS</span>
-                <span class="block text-xs text-slate-500">Produk stok 0 tetap tidak akan tampil di kasir.</span>
-            </span>
-        </label>
-    </section>
-
-    <section class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 class="font-bold text-slate-900">Gambar produk</h2>
-        @if($product->image)
-            <img src="{{ $product->image }}" alt="{{ $product->name }}" class="mt-4 aspect-square w-full rounded-xl object-cover">
-        @else
-            <div class="mt-4 flex aspect-square items-center justify-center rounded-xl bg-slate-100 text-sm text-slate-400">Belum ada gambar</div>
-        @endif
-        <input type="file" name="image" accept="image/jpeg,image/png,image/webp" class="mt-4 block w-full text-sm text-slate-600">
-        <p class="mt-2 text-xs text-slate-500">JPG, PNG, atau WEBP. Maksimal 2 MB.</p>
-        @error('image')<span class="mt-1 block text-xs text-red-600">{{ $message }}</span>@enderror
-    </section>
-</div>
-
-<div class="mt-6 flex items-center justify-end gap-3">
-    <a href="{{ route('admin.products.index') }}" class="rounded-xl px-4 py-3 text-sm font-semibold text-slate-600 hover:bg-slate-100">Batal</a>
-    <button class="rounded-xl bg-emerald-600 px-5 py-3 text-sm font-bold text-white hover:bg-emerald-700">{{ $isEdit ? 'Simpan perubahan' : 'Tambah produk' }}</button>
-</div>
+<section class="space-y-6">
+<div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"><div class="mb-5"><p class="text-xs font-bold uppercase tracking-[0.16em] text-emerald-600">Product identity</p><h2 class="mt-1 text-lg font-black">Informasi produk</h2></div><div class="grid gap-5 sm:grid-cols-2"><label class="sm:col-span-2"><span class="text-sm font-bold text-slate-700">Nama produk</span><input name="name" value="{{ old('name', $product->name) }}" required class="mt-2 w-full rounded-xl border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100">@error('name')<span class="mt-1 block text-xs text-red-600">{{ $message }}</span>@enderror</label><label><span class="text-sm font-bold text-slate-700">Kategori</span><select name="category_id" required class="mt-2 w-full rounded-xl border-slate-200 bg-slate-50 px-4 py-3"> <option value="">Pilih kategori</option>@foreach($categories as $category)<option value="{{ $category->id }}" @selected(old('category_id', $product->category_id) == $category->id)>{{ $category->name }}</option>@endforeach</select></label><label><span class="text-sm font-bold text-slate-700">Stok saat ini</span><input type="number" name="stock" min="0" value="{{ old('stock', $product->stock) }}" required class="mt-2 w-full rounded-xl border-slate-200 bg-slate-50 px-4 py-3"></label></div></div>
+<div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"><div class="mb-5"><p class="text-xs font-bold uppercase tracking-[0.16em] text-violet-600">Product media</p><h2 class="mt-1 text-lg font-black text-slate-950">Gambar produk</h2><p class="mt-1 text-sm text-slate-500">Unggah JPG, PNG, atau WebP maksimal 2 MB.</p></div><div class="flex flex-col gap-5 sm:flex-row sm:items-center"><div class="flex h-28 w-28 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-slate-100 ring-1 ring-slate-200">@if($product->image)<img src="{{ $product->image }}" alt="{{ $product->name ?: 'Preview produk' }}" class="h-full w-full object-cover">@else<span class="text-xs font-bold uppercase tracking-wide text-slate-400">Belum ada</span>@endif</div><div class="min-w-0 flex-1"><label class="block"><span class="text-sm font-bold text-slate-700">Foto produk</span><input type="file" name="image" accept="image/jpeg,image/png,image/webp" class="mt-2 block w-full cursor-pointer rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-violet-100 file:px-3 file:py-2 file:text-sm file:font-bold file:text-violet-700"></label>@error('image')<span class="mt-1 block text-xs text-red-600">{{ $message }}</span>@enderror@if($product->image)<p class="mt-2 text-xs text-slate-500">Pilih file baru untuk mengganti gambar saat ini.</p>@endif</div></div></div>
+<div class="rounded-2xl border border-emerald-100 bg-emerald-50/50 p-6"><div class="mb-5"><p class="text-xs font-bold uppercase tracking-[0.16em] text-emerald-700">Margin control</p><h2 class="mt-1 text-lg font-black text-slate-950">Harga & HPP</h2><p class="mt-1 text-sm text-slate-500">Harga jual disimpan sebagai harga nett. HPP akan disnapshot saat transaksi.</p></div><div class="grid gap-5 sm:grid-cols-2"><label><span class="text-sm font-bold text-slate-700">Harga jual nett</span><div class="relative mt-2"><span class="pointer-events-none absolute left-4 top-3 text-sm text-slate-400">Rp</span><input type="number" name="price" min="0" step="0.01" value="{{ old('price', $product->price) }}" required class="w-full rounded-xl border-emerald-200 bg-white py-3 pl-11 pr-4"> </div>@error('price')<span class="mt-1 block text-xs text-red-600">{{ $message }}</span>@enderror</label><label><span class="text-sm font-bold text-slate-700">HPP / unit</span><div class="relative mt-2"><span class="pointer-events-none absolute left-4 top-3 text-sm text-slate-400">Rp</span><input type="number" name="cost_price" min="0" step="0.01" value="{{ old('cost_price', $product->cost_price) }}" required class="w-full rounded-xl border-emerald-200 bg-white py-3 pl-11 pr-4"></div>@error('cost_price')<span class="mt-1 block text-xs text-red-600">{{ $message }}</span>@enderror</label></div></div>
+<div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"><div class="mb-5"><p class="text-xs font-bold uppercase tracking-[0.16em] text-blue-600">Tax configuration</p><h2 class="mt-1 text-lg font-black">Pajak produk</h2><p class="mt-1 text-sm text-slate-500">Pajak dipisahkan dari fee gateway dan dihitung ulang oleh server saat checkout.</p></div><div class="grid gap-5 sm:grid-cols-2"><label><span class="text-sm font-bold text-slate-700">Nama pajak</span><input name="tax_name" value="{{ old('tax_name', $product->tax_name ?? 'PB1') }}" class="mt-2 w-full rounded-xl border-slate-200 bg-slate-50 px-4 py-3"></label><label><span class="text-sm font-bold text-slate-700">Kode pajak</span><input name="tax_code" value="{{ old('tax_code', $product->tax_code ?? 'PB1') }}" class="mt-2 w-full rounded-xl border-slate-200 bg-slate-50 px-4 py-3"></label><label><span class="text-sm font-bold text-slate-700">Tarif pajak (%)</span><input type="number" name="tax_rate" min="0" max="100" step="0.01" value="{{ old('tax_rate', $product->tax_rate ?? 10) }}" class="mt-2 w-full rounded-xl border-slate-200 bg-slate-50 px-4 py-3"></label></div><label class="mt-5 flex items-start gap-3 rounded-xl bg-slate-50 p-4"><input type="checkbox" name="tax_included" value="1" @checked(old('tax_included', $product->tax_included ?? false)) class="mt-1 h-4 w-4 rounded border-slate-300 text-emerald-600"><span><span class="block text-sm font-bold">Harga sudah termasuk pajak</span><span class="block text-xs leading-5 text-slate-500">Aktifkan hanya jika harga jual yang dimasukkan sudah mencakup pajak.</span></span></label></div>
+</section>
+<section class="space-y-6"><div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"><h2 class="font-black">Preview checkout</h2><p class="mt-1 text-sm leading-6 text-slate-500">Contoh struktur harga yang dilihat kasir. Nilai final selalu dihitung server.</p><div class="mt-5 space-y-3 border-t border-slate-100 pt-4 text-sm"><div class="flex justify-between"><span class="text-slate-500">Harga nett</span><span class="font-bold">Rp{{ number_format($product->price ?? 0, 0, ',', '.') }}</span></div><div class="flex justify-between"><span class="text-slate-500">Pajak produk</span><span class="font-bold text-blue-700">Dari konfigurasi</span></div><div class="flex justify-between border-t border-dashed border-slate-200 pt-3"><span class="font-black">Gateway fee</span><span class="font-bold text-amber-700">Terpisah</span></div></div><div class="mt-5 rounded-xl bg-slate-950 p-4 text-sm text-white"><p class="font-bold">Integrity by default</p><p class="mt-1 leading-5 text-slate-300">Harga, pajak, HPP, dan fee disnapshot agar laporan historis tidak berubah.</p></div></div><div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"><h2 class="font-black">Ketersediaan</h2><label class="mt-4 flex items-center gap-3 rounded-xl bg-slate-50 p-4"><input type="checkbox" name="is_available" value="1" @checked(old('is_available', $product->is_available)) class="h-4 w-4 rounded border-slate-300 text-emerald-600"><span><span class="block text-sm font-bold">Tampilkan di POS</span><span class="block text-xs text-slate-500">Stok 0 tetap tidak tampil di kasir.</span></span></label><label class="mt-4 block"><span class="text-sm font-bold text-slate-700">Batas stok rendah</span><input type="number" name="low_stock_threshold" min="0" value="{{ old('low_stock_threshold', $product->low_stock_threshold) }}" required class="mt-2 w-full rounded-xl border-slate-200 bg-slate-50 px-4 py-3"></label></div></section></div>
+<div class="mt-6 flex items-center justify-end gap-3"><a href="{{ route('admin.products.index') }}" class="rounded-xl px-4 py-3 text-sm font-bold text-slate-600 hover:bg-slate-100">Batal</a><button class="rounded-xl bg-emerald-600 px-5 py-3 text-sm font-bold text-white shadow-sm hover:bg-emerald-700">{{ $isEdit ? 'Simpan perubahan' : 'Tambah produk' }}</button></div>

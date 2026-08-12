@@ -13,14 +13,27 @@ class OrderItem extends Model
     protected $fillable = [
         'order_id',
         'product_id',
+        'product_name',
         'quantity',
         'price',
+        'unit_cost',
+        'tax_name',
+        'tax_code',
+        'tax_rate',
+        'tax_included',
+        'taxable_base',
+        'tax_amount',
         'subtotal',
     ];
 
     protected $casts = [
         'quantity' => 'integer',
         'price' => 'decimal:2',
+        'unit_cost' => 'decimal:2',
+        'tax_rate' => 'decimal:4',
+        'tax_included' => 'boolean',
+        'taxable_base' => 'decimal:2',
+        'tax_amount' => 'decimal:2',
         'subtotal' => 'decimal:2',
     ];
 

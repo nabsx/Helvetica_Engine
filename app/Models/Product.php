@@ -16,6 +16,11 @@ class Product extends Model
         'category_id',
         'name',
         'price',
+        'cost_price',
+        'tax_name',
+        'tax_code',
+        'tax_rate',
+        'tax_included',
         'image',
         'stock',
         'low_stock_threshold',
@@ -24,6 +29,9 @@ class Product extends Model
 
     protected $casts = [
         'price' => 'decimal:2',
+        'cost_price' => 'decimal:2',
+        'tax_rate' => 'decimal:4',
+        'tax_included' => 'boolean',
         'stock' => 'integer',
         'low_stock_threshold' => 'integer',
         'is_available' => 'boolean',
