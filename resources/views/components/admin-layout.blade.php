@@ -8,7 +8,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     @if(class_exists(\Livewire\Livewire::class)) @livewireStyles @endif
 </head>
-<body class="min-h-screen bg-white text-slate-900 antialiased">
+<body class="min-h-screen bg-slate-50 text-slate-900 antialiased">
     <div class="min-h-screen lg:flex">
         <aside class="w-full border-b border-slate-200 bg-white lg:min-h-screen lg:w-64 lg:border-b-0 lg:border-r">
             <div class="flex items-center justify-between px-6 py-5">
