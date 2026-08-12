@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\CalculateOrderRequest;
 use App\Http\Requests\StoreOrderRequest;
 use App\Models\Order;
 use App\Models\Product;
@@ -17,6 +18,39 @@ class OrderController extends Controller
         private readonly ActivityLogService $activityLogs,
         private readonly FinancialCalculationService $financials,
     ) {}
+
+    /**
+     * Live total preview for the cashier's cart. Uses the exact same
+     * FinancialCalculationService as store() so what the cashier sees on
+     * screen always matches what gets saved and printed on the receipt —
+     * there is no separate tax/rounding logic duplicated in the frontend.
+     */
+    public function calculate(CalculateOrderRequest $request): JsonResponse
+    {
+        $data = $request->validated();
+
+        $productIds = collect($data['items'])->pluck('product_id')->unique()->values();
+        $products = Product::query()->whereIn('id', $productIds)->get()->keyBy('id');
+
+        foreach ($data['items'] as $item) {
+            if (! $products->has((int) $item['product_id'])) {
+                abort(422, 'Produk tidak ditemukan.');
+            }
+        }
+
+        $financials = $this->financials->calculate($products, $data['items'], $data['payment_type']);
+
+        return response()->json([
+            'subtotal' => (float) $financials['subtotal'],
+            'tax_amount' => (float) $financials['total_tax'],
+            'gateway_fee_amount' => (float) $financials['gateway_fee_amount'],
+            // store() always persists 0 for rounding_adjustment, so the
+            // preview must match that exactly instead of guessing its own
+            // rounding rule (that mismatch was the original bug).
+            'rounding_adjustment' => 0,
+            'total_amount' => (float) $financials['total_amount'],
+        ]);
+    }
 
     public function store(StoreOrderRequest $request): JsonResponse
     {

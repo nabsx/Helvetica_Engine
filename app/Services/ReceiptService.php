@@ -28,7 +28,15 @@ class ReceiptService
                     'subtotal' => (float) $item->subtotal,
                 ])->values()->all(),
                 'subtotal' => (float) $order->subtotal,
-                'dpp' => round((float) $order->subtotal / 1.10, 2),
+                // DPP (Dasar Pengenaan Pajak) always equals the order
+                // subtotal: FinancialCalculationService sets each line's
+                // taxable_base to the net line amount regardless of whether
+                // that product's tax is inclusive or exclusive, so summing
+                // per-line taxable_base is always identical to subtotal.
+                // (Previously this divided subtotal by 1.10, which silently
+                // assumed every price was tax-inclusive and deflated the
+                // DPP shown on the receipt whenever it wasn't.)
+                'dpp' => (float) $order->subtotal,
                 'tax_amount' => (float) $order->tax_amount,
                 'rounding_adjustment' => (float) $order->rounding_adjustment,
                 'total_amount' => (float) $order->total_amount,

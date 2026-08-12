@@ -62,6 +62,10 @@ Route::middleware('auth')->group(function () {
     Route::post('/shifts/open', [ShiftController::class, 'open'])->name('shifts.open');
     Route::post('/shifts/close', [ShiftController::class, 'close'])->name('shifts.close');
 
+    // Live cart total preview — same calculation engine as store(), so the
+    // number shown to the cashier always matches what gets saved/printed.
+    Route::post('/orders/calculate', [OrderController::class, 'calculate'])->name('orders.calculate');
+
     // Orders additionally require an OPEN shift — enforced server-side.
     Route::middleware('shift.active')->group(function () {
         Route::post('/orders', [OrderController::class, 'store'])->name('orders.store');

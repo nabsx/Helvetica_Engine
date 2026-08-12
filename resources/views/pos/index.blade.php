@@ -117,18 +117,28 @@
                         <span x-text="formatRupiah(totalBelanja)"></span>
                     </div>
                     <div class="flex justify-between text-slate-600">
-                        <span>PB1 termasuk (10%)</span>
-                        <span x-text="formatRupiah(taxAmount)"></span>
+                        <span>Pajak (PB1)</span>
+                        <span x-text="calculating ? '…' : formatRupiah(taxAmount)"></span>
                     </div>
+                    <template x-if="paymentType === 'QRIS' && gatewayFeeAmount > 0">
+                        <div class="flex justify-between text-slate-600">
+                            <span>Biaya QRIS</span>
+                            <span x-text="calculating ? '…' : formatRupiah(gatewayFeeAmount)"></span>
+                        </div>
+                    </template>
                     <div class="flex justify-between text-slate-600">
                         <span>Pembulatan</span>
                         <span x-text="formatRupiah(roundingAdjustment)"></span>
                     </div>
                     <div class="flex justify-between font-bold text-slate-800 text-base pt-1 border-t">
                         <span>Total Bayar</span>
-                        <span x-text="formatRupiah(totalAmount)"></span>
+                        <span x-text="calculating ? '…' : formatRupiah(totalAmount)"></span>
                     </div>
                 </div>
+
+                <template x-if="calcError">
+                    <p class="text-xs text-red-500" x-text="calcError"></p>
+                </template>
 
                 <div class="grid grid-cols-2 gap-2">
                     <button @click="paymentType = 'CASH'"
@@ -276,6 +286,21 @@
             submitting: false,
             errorMessage: '',
 
+            // Totals are always fetched from the server (same
+            // FinancialCalculationService used when the order is actually
+            // saved) so the cashier never sees a number that doesn't match
+            // what gets charged and printed on the receipt.
+            calculating: false,
+            calcError: '',
+            calcTimer: null,
+            serverTotals: {
+                subtotal: 0,
+                tax_amount: 0,
+                gateway_fee_amount: 0,
+                rounding_adjustment: 0,
+                total_amount: 0,
+            },
+
             hasActiveShift: @json((bool) $activeShift),
             openShiftModalOpen: false,
             closeShiftModalOpen: false,
@@ -305,6 +330,12 @@
                         .filter(item => item.stock > 0)
                         .map(item => ({ ...item, quantity: Math.min(item.quantity, item.stock) }));
                 });
+
+                // Re-fetch totals from the server whenever the cart contents
+                // or payment type change (debounced so rapid +/- clicks
+                // don't spam the endpoint).
+                this.$watch('cart', () => this.scheduleRecalculate());
+                this.$watch('paymentType', () => this.scheduleRecalculate());
             },
 
             get allProducts() {
@@ -357,24 +388,73 @@
             },
 
             get taxAmount() {
-                return Math.round((this.totalBelanja - (this.totalBelanja / 1.10)) * 100) / 100;
+                return this.serverTotals.tax_amount;
+            },
+
+            get gatewayFeeAmount() {
+                return this.serverTotals.gateway_fee_amount;
             },
 
             get roundingAdjustment() {
-                if (this.paymentType !== 'CASH') return 0;
-                return Math.round(this.totalBelanja / 500) * 500 - this.totalBelanja;
+                return this.serverTotals.rounding_adjustment;
             },
 
             get totalAmount() {
-                return this.totalBelanja + this.roundingAdjustment;
+                return this.serverTotals.total_amount;
             },
 
             get changeAmount() {
                 return (this.cashGiven || 0) - this.totalAmount;
             },
 
+            scheduleRecalculate() {
+                clearTimeout(this.calcTimer);
+
+                if (this.cart.length === 0) {
+                    this.serverTotals = { subtotal: 0, tax_amount: 0, gateway_fee_amount: 0, rounding_adjustment: 0, total_amount: 0 };
+                    this.calcError = '';
+                    this.calculating = false;
+                    return;
+                }
+
+                this.calcTimer = setTimeout(() => this.recalculate(), 250);
+            },
+
+            async recalculate() {
+                this.calculating = true;
+                try {
+                    const res = await fetch('{{ route('orders.calculate') }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                            'Accept': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            items: this.cart.map(i => ({ product_id: i.product_id, quantity: i.quantity })),
+                            payment_type: this.paymentType,
+                        }),
+                    });
+
+                    const data = await res.json();
+
+                    if (!res.ok) {
+                        this.calcError = data.message || 'Gagal menghitung total.';
+                        return;
+                    }
+
+                    this.calcError = '';
+                    this.serverTotals = data;
+                } catch (e) {
+                    this.calcError = 'Gagal menghitung total (jaringan).';
+                } finally {
+                    this.calculating = false;
+                }
+            },
+
             get canCheckout() {
                 if (this.cart.length === 0) return false;
+                if (this.calculating) return false;
                 if (this.paymentType === 'CASH' && this.changeAmount < 0) return false;
                 return true;
             },
