@@ -59,31 +59,37 @@ class ReceiptService
                 $lineDpp = (int) round($gross * 10000 / (10000 + $rateBasisPoints), 0, PHP_ROUND_HALF_UP);
                 $lineTax = $gross - $lineDpp;
                 $dpp += $lineDpp;
-                $lines[] = $this->summaryLine($item, $lineDpp, $lineTax, true);
+                $this->addSummaryLine($lines, $item, $lineDpp, $lineTax, true);
             } elseif ($hasRate && $exclusive && is_numeric($item->taxable_base) && is_numeric($item->tax_amount)) {
                 $lineDpp = $this->cents($item->taxable_base);
                 $dpp += $lineDpp;
-                $lines[] = $this->summaryLine($item, $lineDpp, $this->cents($item->tax_amount), false);
+                $this->addSummaryLine($lines, $item, $lineDpp, $this->cents($item->tax_amount), false);
             } else {
                 $dpp += is_numeric($item->taxable_base) ? $this->cents($item->taxable_base) : $gross;
-                $lines[] = ['label' => 'Pajak tidak tersedia', 'status' => 'unknown', 'dpp' => null, 'tax_amount' => null];
+                $lines['unknown'] ??= ['label' => 'Pajak tidak tersedia', 'status' => 'unknown', 'dpp' => null, 'tax_amount' => null];
             }
         }
 
-        return ['dpp' => $dpp / 100, 'lines' => $lines];
+        return ['dpp' => $dpp / 100, 'lines' => array_values($lines)];
     }
 
-    private function summaryLine(object $item, int $dpp, int $tax, bool $included): array
+    private function addSummaryLine(array &$lines, object $item, int $dpp, int $tax, bool $included): void
     {
         $name = $item->tax_name ?: ($item->tax_code ?: 'Pajak');
         $rate = rtrim(rtrim(number_format((float) $item->tax_rate, 2, '.', ''), '0'), '.');
+        $key = ($included ? 'included:' : 'exclusive:').$name.'|'.$rate;
 
-        return [
-            'label' => $included ? "Termasuk {$name} {$rate}%" : "{$name} {$rate}%",
-            'status' => $included ? 'included' : 'exclusive',
-            'dpp' => $dpp / 100,
-            'tax_amount' => $tax / 100,
-        ];
+        if (! isset($lines[$key])) {
+            $lines[$key] = [
+                'label' => $included ? "Termasuk {$name} {$rate}%" : "{$name} {$rate}%",
+                'status' => $included ? 'included' : 'exclusive',
+                'dpp' => 0,
+                'tax_amount' => 0,
+            ];
+        }
+
+        $lines[$key]['dpp'] += $dpp / 100;
+        $lines[$key]['tax_amount'] += $tax / 100;
     }
 
     private function cents(mixed $amount): int

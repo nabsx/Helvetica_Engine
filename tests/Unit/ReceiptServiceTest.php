@@ -22,6 +22,17 @@ class ReceiptServiceTest extends TestCase
         $this->assertSame(22000.0, $payload['order']['cash_given']);
     }
 
+    public function test_multiple_items_share_one_aggregated_included_tax_line(): void
+    {
+        $items = array_fill(0, 6, $this->item(15666.6666667, 1, '10', true, 'PB1', 'PB1'));
+        $payload = $this->payload($items);
+
+        $this->assertCount(1, $payload['order']['tax_summary']);
+        $this->assertSame('Termasuk PB1 10%', $payload['order']['tax_summary'][0]['label']);
+        $this->assertSame(8545.45, $payload['order']['tax_summary'][0]['tax_amount']);
+        $this->assertSame(85454.55, $payload['order']['dpp']);
+    }
+
     public function test_quantity_two_and_dynamic_rate_are_supported(): void
     {
         $payload = $this->payload([$this->item(40000, 2, '11', true, 'PPN', 'PPN')]);
