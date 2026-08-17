@@ -46,4 +46,14 @@ class OrderItem extends Model
     {
         return $this->belongsTo(Product::class);
     }
+
+    public function dppAmount(): float
+    {
+        return (float) ($this->taxable_base ?: $this->subtotal);
+    }
+
+    public function taxAmount(): float
+    {
+        return (float) ($this->tax_amount ?: 0);
+    }
 }

@@ -32,38 +32,11 @@ class SalesReportController extends Controller
         $hari = is_string($tanggal)
             ? CarbonImmutable::createFromFormat('Y-m-d', $tanggal, 'Asia/Jakarta')
             : $tanggal->setTimezone('Asia/Jakarta');
-        $start = $hari->startOfDay()->utc();
-        $end = $hari->endOfDay()->utc();
-
-        $orders = Order::query()
-            ->paid()
-            ->whereBetween('created_at', [$start, $end])
-            ->with('items.product');
+        $orders = Order::query()->paid()->forJakartaDate($hari->toDateString())->with('items.product');
         $orderRows = $orders->get();
-        $taxTotals = [];
-        $dppCents = 0;
-
-        foreach ($orderRows as $order) {
-            foreach ($order->items as $item) {
-                $grossCents = (int) round((float) $item->subtotal * 100, 0, PHP_ROUND_HALF_UP);
-                $rate = (float) $item->tax_rate;
-                if ($item->tax_included && $rate > 0) {
-                    $rateBasisPoints = (int) round($rate * 100);
-                    $lineDpp = (int) round($grossCents * 10000 / (10000 + $rateBasisPoints), 0, PHP_ROUND_HALF_UP);
-                    $lineTax = $grossCents - $lineDpp;
-                    $name = $item->tax_name ?: ($item->tax_code ?: 'Pajak');
-                    $rateLabel = rtrim(rtrim(number_format($rate, 2, '.', ''), '0'), '.');
-                    $key = $name.'|'.$rateLabel;
-                    $taxTotals[$key] = ($taxTotals[$key] ?? 0) + $lineTax;
-                    $dppCents += $lineDpp;
-                } else {
-                    $dpp = $item->getAttribute('dpp_amount');
-                    $dppCents += is_numeric($dpp)
-                        ? (int) round((float) $dpp * 100, 0, PHP_ROUND_HALF_UP)
-                        : (int) round(((float) $item->subtotal / 1.10) * 100, 0, PHP_ROUND_HALF_UP);
-                }
-            }
-        }
+        $dppCents = (int) round($orderRows->flatMap->items->sum(fn ($item) => $item->dppAmount()) * 100, 0, PHP_ROUND_HALF_UP);
+        $taxCents = (int) round($orderRows->flatMap->items->sum(fn ($item) => $item->taxAmount()) * 100, 0, PHP_ROUND_HALF_UP);
+        $taxTotals = ['PB1|10' => $taxCents];
 
         $payments = $orderRows->groupBy('payment_type');
         $totalExpense = (float) Expense::query()->forJakartaDate($hari->toDateString())->sum('amount');

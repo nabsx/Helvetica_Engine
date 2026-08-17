@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Carbon\CarbonImmutable;
 
 class Order extends Model
 {
@@ -72,6 +73,16 @@ class Order extends Model
     public function scopePaid(Builder $query): Builder
     {
         return $query->where('status', 'paid');
+    }
+
+    public function scopeForJakartaDate(Builder $query, string $date): Builder
+    {
+        $day = CarbonImmutable::createFromFormat('Y-m-d', $date, 'Asia/Jakarta');
+
+        return $query->whereBetween('created_at', [
+            $day->startOfDay()->utc(),
+            $day->endOfDay()->utc(),
+        ]);
     }
 
     /** Whether this order already has a cancellation request awaiting admin review. */
