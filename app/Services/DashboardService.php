@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\ActivityLog;
+use App\Models\Expense;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\Shift;
@@ -45,8 +46,9 @@ class DashboardService
                 : (int) round(((float) $item->subtotal / 1.10) * 100, 0, PHP_ROUND_HALF_UP);
         }
         $gross = ['value' => ($dppCents - $cogsCents) / 100, 'status' => $unresolvedHppRows > 0 ? 'Sebagian HPP belum tersedia' : 'HPP tercakup'];
-        $expenses = ['value' => 0.0, 'status' => 'Expense belum tercatat (Rp0)'];
-        $net = ['value' => $gross['value'], 'status' => 'Expense belum tercatat, dihitung Rp0'];
+        $expenseValue = round((float) Expense::query()->forJakartaDate($date)->sum('amount'), 2);
+        $expenses = ['value' => $expenseValue, 'status' => $expenseValue > 0 ? 'Biaya operasional hari ini' : 'Tidak ada expense tercatat'];
+        $net = ['value' => $gross['value'] - $expenseValue, 'status' => 'DPP - HPP - Expenses'];
 
         $paymentBreakdown = collect(['CASH' => $cash, 'QRIS' => $qris])->map(function (float $amount) use ($revenue): array {
             return ['amount' => $amount, 'percent' => $revenue > 0 ? round($amount / $revenue * 100) : 0];
@@ -83,8 +85,8 @@ class DashboardService
 
         return compact('localDate', 'orderCount', 'revenue', 'cash', 'qris', 'aov', 'paymentBreakdown', 'cashMonitoring', 'topProducts', 'recentOrders', 'activities', 'lowStock', 'chart', 'gross', 'net', 'expenses', 'resolvedHppRows', 'unresolvedHppRows') + [
             'accountingNote' => $unresolvedHppRows > 0
-                ? "Profit dihitung dari HPP yang tersedia; {$unresolvedHppRows} baris belum memiliki HPP. Expense saat ini dianggap Rp0."
-                : 'Profit dihitung dari snapshot HPP per item atau fallback harga modal produk. Expense saat ini dianggap Rp0.',
+                ? "Profit dihitung dari HPP yang tersedia; {$unresolvedHppRows} baris belum memiliki HPP. Net = DPP - HPP - expense Jakarta."
+                : 'Profit dihitung dari snapshot HPP per item atau fallback harga modal produk. Net = DPP - HPP - expense Jakarta.',
         ];
     }
 }

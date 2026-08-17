@@ -18,7 +18,7 @@
             <div class="px-5 py-6"><p class="px-3 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">Workspace</p>
                 <nav class="mt-3 space-y-1">
                     @foreach([
-                        ['admin.dashboard', 'Dashboard'], ['admin.products.index', 'Produk & harga'], ['admin.categories.index', 'Kategori'], ['admin.sales-report', 'Laporan'], ['admin.cancellations.index', 'Pembatalan'], ['admin.shifts.index', 'Cash monitoring'], ['admin.users.index', 'Staff'], ['pos.index', 'Buka POS'],
+                        ['admin.dashboard', 'Dashboard'], ['admin.products.index', 'Produk & harga'], ['admin.categories.index', 'Kategori'], ['admin.expenses.index', 'Expenses'], ['admin.sales-report', 'Laporan'], ['admin.cancellations.index', 'Pembatalan'], ['admin.shifts.index', 'Cash monitoring'], ['admin.users.index', 'Staff'], ['pos.index', 'Buka POS'],
                     ] as [$route, $label])
                         <a href="{{ route($route) }}" class="flex items-center justify-between rounded-xl px-3 py-3 text-sm font-semibold transition {{ request()->routeIs($route) ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}"><span>{{ $label }}</span>@if($route === 'admin.cancellations.index' && $pendingCancellations > 0)<span class="rounded-full bg-red-500 px-2 py-0.5 text-[11px] font-bold text-white">{{ $pendingCancellations }}</span>@endif</a>
                     @endforeach
