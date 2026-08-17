@@ -34,7 +34,7 @@
         ] as [$label, $value, $hint, $valueColor])
             <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                 <p class="text-xs font-bold uppercase tracking-wider text-slate-400">{{ $label }}</p>
-                <p class="mt-3 text-2xl font-black {{ $valueColor }}">{{ $value }}</p>
+                <p class="mt-3 text-2xl font-mono tabular-nums font-semibold {{ $valueColor }}">{{ $value }}</p>
                 <p class="mt-1 text-xs text-slate-500">{{ $hint }}</p>
             </div>
         @endforeach
