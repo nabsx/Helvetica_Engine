@@ -61,5 +61,49 @@
                 </table>
             </div>
         </section>
+
+        <section class="rounded-xl border border-slate-200 bg-white shadow-sm">
+            <div class="border-b border-slate-200 px-5 py-4">
+                <h2 class="font-bold">Detail transaksi</h2>
+                <p class="mt-1 text-sm text-slate-500">Lihat barang yang dibeli berdasarkan nomor order.</p>
+            </div>
+            <div class="divide-y divide-slate-100">
+                @forelse ($laporan['transaksi'] as $order)
+                    <details class="group px-5 py-4">
+                        <summary class="flex cursor-pointer list-none items-center justify-between gap-4">
+                            <div>
+                                <p class="font-semibold">{{ $order->order_number }}</p>
+                                <p class="mt-1 text-xs text-slate-500">{{ strtoupper($order->payment_type) }} · {{ $order->created_at?->format('H:i') }}</p>
+                            </div>
+                            <div class="flex items-center gap-4">
+                                <span class="font-semibold">Rp {{ number_format($order->total_amount, 0, ',', '.') }}</span>
+                                <span class="text-sm text-emerald-600 group-open:hidden">Lihat detail</span>
+                                <span class="hidden text-sm text-slate-500 group-open:inline">Tutup</span>
+                            </div>
+                        </summary>
+                        <div class="mt-4 overflow-x-auto rounded-lg bg-slate-50 p-4">
+                            <table class="min-w-full text-left text-sm">
+                                <thead class="text-xs uppercase tracking-wide text-slate-500">
+                                    <tr><th class="pb-2">Produk</th><th class="pb-2">Qty</th><th class="pb-2">Harga</th><th class="pb-2 text-right">Subtotal</th></tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-200">
+                                    @foreach ($order->items as $item)
+                                        <tr>
+                                            <td class="py-2">{{ $item->product_name ?: ($item->product?->name ?? 'Produk') }}</td>
+                                            <td class="py-2">{{ $item->quantity }}</td>
+                                            <td class="py-2">Rp {{ number_format($item->price, 0, ',', '.') }}</td>
+                                            <td class="py-2 text-right font-medium">Rp {{ number_format($item->subtotal, 0, ',', '.') }}</td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                            <div class="mt-3 flex justify-end border-t border-slate-200 pt-3 text-sm font-bold">TOTAL&nbsp; Rp {{ number_format($order->total_amount, 0, ',', '.') }}</div>
+                        </div>
+                    </details>
+                @empty
+                    <p class="px-5 py-8 text-center text-sm text-slate-500">Tidak ada transaksi pada tanggal ini.</p>
+                @endforelse
+            </div>
+        </section>
     </main>
 </x-admin-layout>
