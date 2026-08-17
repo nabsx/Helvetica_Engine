@@ -25,6 +25,23 @@ class DashboardService
         $qris = round((float) (clone $orders)->where('payment_type', 'QRIS')->sum('total_amount'), 2);
         $aov = $orderCount > 0 ? round($revenue / $orderCount, 2) : null;
 
+        $hppRows = (clone $orders)->with('items.product')->get()->flatMap->items;
+        $cogsCents = 0;
+        $resolvedHppRows = 0;
+        $unresolvedHppRows = 0;
+        foreach ($hppRows as $item) {
+            $snapshotCost = (float) ($item->unit_cost ?? 0);
+            $masterCost = (float) ($item->product?->cost_price ?? 0);
+            $unitCost = $snapshotCost > 0 ? $snapshotCost : $masterCost;
+            $lineCents = (int) round($unitCost * (int) $item->quantity * 100, 0, PHP_ROUND_HALF_UP);
+            $cogsCents += $lineCents;
+            $lineCents > 0 ? $resolvedHppRows++ : $unresolvedHppRows++;
+        }
+        $revenueCents = (int) round($revenue * 100, 0, PHP_ROUND_HALF_UP);
+        $gross = ['value' => ($revenueCents - $cogsCents) / 100, 'status' => $unresolvedHppRows > 0 ? 'Sebagian HPP belum tersedia' : 'HPP tercakup'];
+        $expenses = ['value' => 0.0, 'status' => 'Expense belum tercatat (Rp0)'];
+        $net = ['value' => $gross['value'], 'status' => 'Expense belum tercatat, dihitung Rp0'];
+
         $paymentBreakdown = collect(['CASH' => $cash, 'QRIS' => $qris])->map(function (float $amount) use ($revenue): array {
             return ['amount' => $amount, 'percent' => $revenue > 0 ? round($amount / $revenue * 100) : 0];
         });
@@ -58,10 +75,10 @@ class DashboardService
             return ['label' => $day->format('D'), 'amount' => round((float) Order::query()->paid()->whereBetween('created_at', [$from, $to])->sum('total_amount'), 2)];
         });
 
-        return compact('localDate', 'orderCount', 'revenue', 'cash', 'qris', 'aov', 'paymentBreakdown', 'cashMonitoring', 'topProducts', 'recentOrders', 'activities', 'lowStock', 'chart') + [
-            'gross' => ['value' => null, 'status' => 'HPP belum dikonfigurasi'],
-            'net' => ['value' => null, 'status' => 'Expense belum tercatat'],
-            'accountingNote' => 'Gross Profit dan Net Profit belum tersedia karena HPP per item dan expense belum dicatat. Dashboard tidak menggunakan harga jual sebagai HPP.',
+        return compact('localDate', 'orderCount', 'revenue', 'cash', 'qris', 'aov', 'paymentBreakdown', 'cashMonitoring', 'topProducts', 'recentOrders', 'activities', 'lowStock', 'chart', 'gross', 'net', 'expenses', 'resolvedHppRows', 'unresolvedHppRows') + [
+            'accountingNote' => $unresolvedHppRows > 0
+                ? "Profit dihitung dari HPP yang tersedia; {$unresolvedHppRows} baris belum memiliki HPP. Expense saat ini dianggap Rp0."
+                : 'Profit dihitung dari snapshot HPP per item atau fallback harga modal produk. Expense saat ini dianggap Rp0.',
         ];
     }
 }

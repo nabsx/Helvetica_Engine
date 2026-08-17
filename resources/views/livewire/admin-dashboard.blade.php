@@ -29,8 +29,8 @@
             ['Sales', 'Rp'.number_format($revenue, 0, ',', '.'), 'Business revenue', 'text-teal-600'],
             ['Orders', number_format($orderCount, 0, ',', '.'), 'Paid orders', 'text-slate-900'],
             ['AOV', $aov === null ? 'N/A' : 'Rp'.number_format($aov, 0, ',', '.'), 'Average order value', 'text-slate-900'],
-            ['Gross', 'N/A', $gross['status'], 'text-slate-400'],
-            ['Net', 'N/A', $net['status'], 'text-slate-400'],
+            ['Gross', 'Rp'.number_format($gross['value'], 0, ',', '.'), $gross['status'], 'text-slate-900'],
+            ['Net', 'Rp'.number_format($net['value'], 0, ',', '.'), $net['status'], 'text-slate-900'],
         ] as [$label, $value, $hint, $valueColor])
             <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                 <p class="text-xs font-bold uppercase tracking-wider text-slate-400">{{ $label }}</p>
