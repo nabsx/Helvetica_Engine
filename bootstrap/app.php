@@ -21,7 +21,14 @@ return Application::configure(basePath: dirname(__DIR__))
             'shift.active' => EnsureShiftIsOpen::class,
             'admin' => EnsureUserIsAdmin::class,
         ]);
+
+        // Laravel's default auth middleware redirects guests to route('login'),
+        // but this app's login route is named 'pos.login' — without this,
+        // any expired-session or logged-out request to a protected route
+        // crashes with RouteNotFoundException instead of redirecting nicely.
+        $middleware->redirectGuestsTo(fn () => route('pos.login'));
     })
     ->withExceptions(function ($exceptions) {
         //
     })->create();
+    

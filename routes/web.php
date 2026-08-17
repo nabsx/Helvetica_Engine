@@ -18,7 +18,7 @@ use Illuminate\Support\Facades\Route;
 
 // --- Public: staff login (name picker + PIN pad) ---
 Route::get('/login', [AuthController::class, 'showLogin'])->name('pos.login');
-Route::post('/login', [AuthController::class, 'login'])->name('pos.login.submit');
+Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1')->name('pos.login.submit');
 
 // --- Authenticated staff area ---
 Route::middleware('auth')->group(function () {
