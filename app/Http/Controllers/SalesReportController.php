@@ -29,41 +29,69 @@ class SalesReportController extends Controller
     public function getLaporanHarian(CarbonImmutable|string $tanggal): array
     {
         $hari = is_string($tanggal)
-            ? CarbonImmutable::createFromFormat('Y-m-d', $tanggal)
-            : $tanggal;
+            ? CarbonImmutable::createFromFormat('Y-m-d', $tanggal, 'Asia/Jakarta')
+            : $tanggal->setTimezone('Asia/Jakarta');
+        $start = $hari->startOfDay()->utc();
+        $end = $hari->endOfDay()->utc();
 
         $orders = Order::query()
             ->paid()
-            ->whereBetween('created_at', [$hari->startOfDay(), $hari->endOfDay()]);
+            ->whereBetween('created_at', [$start, $end])
+            ->with('items.product');
+        $orderRows = $orders->get();
+        $taxTotals = [];
+        $dppCents = 0;
 
-        $summary = (clone $orders)
-            ->selectRaw('COUNT(*) AS total_transaksi')
-            ->selectRaw('COALESCE(SUM(subtotal), 0) AS total_pendapatan_kotor')
-            ->selectRaw('COALESCE(SUM(tax_amount), 0) AS total_pajak')
-            ->selectRaw('COALESCE(SUM(subtotal / 1.10), 0) AS total_pendapatan_bersih')
-            ->selectRaw('COALESCE(SUM(CASE WHEN payment_type = \'CASH\' THEN rounding_adjustment ELSE 0 END), 0) AS total_uang_pembulatan')
-            ->first();
+        foreach ($orderRows as $order) {
+            foreach ($order->items as $item) {
+                $grossCents = (int) round((float) $item->subtotal * 100, 0, PHP_ROUND_HALF_UP);
+                $rate = (float) $item->tax_rate;
+                if ($item->tax_included && $rate > 0) {
+                    $rateBasisPoints = (int) round($rate * 100);
+                    $lineDpp = (int) round($grossCents * 10000 / (10000 + $rateBasisPoints), 0, PHP_ROUND_HALF_UP);
+                    $lineTax = $grossCents - $lineDpp;
+                    $name = $item->tax_name ?: ($item->tax_code ?: 'Pajak');
+                    $rateLabel = rtrim(rtrim(number_format($rate, 2, '.', ''), '0'), '.');
+                    $key = $name.'|'.$rateLabel;
+                    $taxTotals[$key] = ($taxTotals[$key] ?? 0) + $lineTax;
+                    $dppCents += $lineDpp;
+                } else {
+                    $dpp = $item->getAttribute('dpp_amount');
+                    $dppCents += is_numeric($dpp)
+                        ? (int) round((float) $dpp * 100, 0, PHP_ROUND_HALF_UP)
+                        : (int) round(((float) $item->subtotal / 1.10) * 100, 0, PHP_ROUND_HALF_UP);
+                }
+            }
+        }
 
-        $payments = (clone $orders)
-            ->select('payment_type')
-            ->selectRaw('COUNT(*) AS jumlah_transaksi')
-            ->selectRaw('COALESCE(SUM(subtotal), 0) AS total_pendapatan')
-            ->selectRaw('COALESCE(SUM(total_amount), 0) AS total_dibayar')
-            ->groupBy('payment_type')
-            ->get()
-            ->keyBy('payment_type');
+        $payments = $orderRows->groupBy('payment_type');
 
         return [
             'tanggal' => $hari->toDateString(),
-            'total_transaksi' => (int) $summary->total_transaksi,
-            'total_pendapatan_kotor' => (float) $summary->total_pendapatan_kotor,
-            'total_pajak' => (float) $summary->total_pajak,
-            'total_pendapatan_bersih' => (float) $summary->total_pendapatan_bersih,
-            'total_uang_pembulatan' => (float) $summary->total_uang_pembulatan,
+            'total_transaksi' => $orderRows->count(),
+            'total_pendapatan_kotor' => (float) $orderRows->sum('total_amount'),
+            'total_pendapatan' => (float) $orderRows->sum('total_amount'),
+            'total_pajak' => array_sum($taxTotals) / 100,
+            'total_pendapatan_bersih' => $dppCents / 100,
+            'total_uang_pembulatan' => (float) $orderRows->where('payment_type', 'CASH')->sum('rounding_adjustment'),
+            'pajak_terkumpul' => collect($taxTotals)->map(fn ($amount, $key) => [
+                'label' => 'Termasuk '.str_replace('|', ' ', $key).'%',
+                'amount' => $amount / 100,
+            ])->values()->all(),
+            'transaksi' => $orderRows,
             'breakdown_pembayaran' => [
-                'CASH' => $this->paymentSummary($payments->get('CASH')),
-                'QRIS' => $this->paymentSummary($payments->get('QRIS')),
+                'CASH' => $this->paymentSummaryFromGroup($payments->get('CASH')),
+                'QRIS' => $this->paymentSummaryFromGroup($payments->get('QRIS')),
             ],
+        ];
+    }
+
+    private function paymentSummaryFromGroup($orders): array
+    {
+        return [
+            'jumlah_transaksi' => $orders?->count() ?? 0,
+            'total_pendapatan' => (float) ($orders?->sum('subtotal') ?? 0),
+            'total_dibayar' => (float) ($orders?->sum('total_amount') ?? 0),
         ];
     }
 
