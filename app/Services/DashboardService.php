@@ -37,8 +37,14 @@ class DashboardService
             $cogsCents += $lineCents;
             $lineCents > 0 ? $resolvedHppRows++ : $unresolvedHppRows++;
         }
-        $revenueCents = (int) round($revenue * 100, 0, PHP_ROUND_HALF_UP);
-        $gross = ['value' => ($revenueCents - $cogsCents) / 100, 'status' => $unresolvedHppRows > 0 ? 'Sebagian HPP belum tersedia' : 'HPP tercakup'];
+        $dppCents = 0;
+        foreach ($hppRows as $item) {
+            $dpp = $item->getAttribute('dpp_amount');
+            $dppCents += is_numeric($dpp)
+                ? (int) round((float) $dpp * 100, 0, PHP_ROUND_HALF_UP)
+                : (int) round(((float) $item->subtotal / 1.10) * 100, 0, PHP_ROUND_HALF_UP);
+        }
+        $gross = ['value' => ($dppCents - $cogsCents) / 100, 'status' => $unresolvedHppRows > 0 ? 'Sebagian HPP belum tersedia' : 'HPP tercakup'];
         $expenses = ['value' => 0.0, 'status' => 'Expense belum tercatat (Rp0)'];
         $net = ['value' => $gross['value'], 'status' => 'Expense belum tercatat, dihitung Rp0'];
 

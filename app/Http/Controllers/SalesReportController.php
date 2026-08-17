@@ -29,12 +29,14 @@ class SalesReportController extends Controller
     public function getLaporanHarian(CarbonImmutable|string $tanggal): array
     {
         $hari = is_string($tanggal)
-            ? CarbonImmutable::createFromFormat('Y-m-d', $tanggal)
-            : $tanggal;
+            ? CarbonImmutable::createFromFormat('Y-m-d', $tanggal, 'Asia/Jakarta')
+            : $tanggal->setTimezone('Asia/Jakarta');
+        $start = $hari->startOfDay()->utc();
+        $end = $hari->endOfDay()->utc();
 
         $orders = Order::query()
             ->paid()
-            ->whereBetween('created_at', [$hari->startOfDay(), $hari->endOfDay()])
+            ->whereBetween('created_at', [$start, $end])
             ->with('items.product');
         $orderRows = $orders->get();
         $taxTotals = [];
@@ -54,9 +56,10 @@ class SalesReportController extends Controller
                     $taxTotals[$key] = ($taxTotals[$key] ?? 0) + $lineTax;
                     $dppCents += $lineDpp;
                 } else {
-                    $dppCents += is_numeric($item->taxable_base)
-                        ? (int) round((float) $item->taxable_base * 100, 0, PHP_ROUND_HALF_UP)
-                        : $grossCents;
+                    $dpp = $item->getAttribute('dpp_amount');
+                    $dppCents += is_numeric($dpp)
+                        ? (int) round((float) $dpp * 100, 0, PHP_ROUND_HALF_UP)
+                        : (int) round(((float) $item->subtotal / 1.10) * 100, 0, PHP_ROUND_HALF_UP);
                 }
             }
         }
@@ -66,7 +69,8 @@ class SalesReportController extends Controller
         return [
             'tanggal' => $hari->toDateString(),
             'total_transaksi' => $orderRows->count(),
-            'total_pendapatan_kotor' => (float) $orderRows->sum('subtotal'),
+            'total_pendapatan_kotor' => (float) $orderRows->sum('total_amount'),
+            'total_pendapatan' => (float) $orderRows->sum('total_amount'),
             'total_pajak' => array_sum($taxTotals) / 100,
             'total_pendapatan_bersih' => $dppCents / 100,
             'total_uang_pembulatan' => (float) $orderRows->where('payment_type', 'CASH')->sum('rounding_adjustment'),
