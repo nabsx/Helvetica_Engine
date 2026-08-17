@@ -52,7 +52,10 @@ class ReceiptController extends Controller
 
         $text .= $line;
         $text .= $this->row('Total Belanja', $order['subtotal']);
-        $text .= $this->row('PB1 termasuk', $order['tax_amount']);
+        $text .= $this->row('DPP', $order['dpp']);
+        foreach ($order['tax_summary'] as $tax) {
+            $text .= $this->row($tax['label'], $tax['tax_amount'] ?? 0);
+        }
         $text .= $this->row('Pembulatan', $order['rounding_adjustment']);
         $text .= $this->row('TOTAL', $order['total_amount']);
 

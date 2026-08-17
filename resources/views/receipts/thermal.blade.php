@@ -42,7 +42,9 @@
     <hr>
     <div class="row"><span>Total Belanja</span><span>{{ number_format($receipt['order']['subtotal'], 0, ',', '.') }}</span></div>
     <div class="row"><span>DPP</span><span>{{ number_format($receipt['order']['dpp'], 0, ',', '.') }}</span></div>
-    <div class="row"><span>PB1 10%</span><span>{{ number_format($receipt['order']['tax_amount'], 0, ',', '.') }}</span></div>
+    @foreach($receipt['order']['tax_summary'] as $tax)
+        <div class="row"><span>{{ $tax['label'] }}</span><span>{{ $tax['tax_amount'] === null ? '-' : number_format($tax['tax_amount'], 0, ',', '.') }}</span></div>
+    @endforeach
     <div class="row"><span>Pembulatan</span><span>{{ number_format($receipt['order']['rounding_adjustment'], 0, ',', '.') }}</span></div>
     <div class="row total"><span>TOTAL</span><span>{{ number_format($receipt['order']['total_amount'], 0, ',', '.') }}</span></div>
 

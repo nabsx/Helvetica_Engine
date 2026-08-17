@@ -3,12 +3,14 @@
 namespace App\Services;
 
 use App\Models\Order;
+use Illuminate\Support\Collection;
 
 class ReceiptService
 {
     public function payload(Order $order): array
     {
         $order->loadMissing('items.product', 'user');
+        $taxSummary = $this->taxSummary($order->items);
 
         return [
             'store' => [
@@ -22,27 +24,76 @@ class ReceiptService
                 'cashier' => $order->user?->name,
                 'payment_type' => $order->payment_type,
                 'items' => $order->items->map(fn ($item): array => [
-                    'name' => $item->product?->name ?? 'Produk',
+                    'name' => $item->product_name ?: ($item->product?->name ?? 'Produk'),
                     'quantity' => $item->quantity,
                     'price' => (float) $item->price,
                     'subtotal' => (float) $item->subtotal,
                 ])->values()->all(),
                 'subtotal' => (float) $order->subtotal,
-                // DPP (Dasar Pengenaan Pajak) always equals the order
-                // subtotal: FinancialCalculationService sets each line's
-                // taxable_base to the net line amount regardless of whether
-                // that product's tax is inclusive or exclusive, so summing
-                // per-line taxable_base is always identical to subtotal.
-                // (Previously this divided subtotal by 1.10, which silently
-                // assumed every price was tax-inclusive and deflated the
-                // DPP shown on the receipt whenever it wasn't.)
-                'dpp' => (float) $order->subtotal,
+                'dpp' => $taxSummary['dpp'],
                 'tax_amount' => (float) $order->tax_amount,
+                'tax_summary' => $taxSummary['lines'],
                 'rounding_adjustment' => (float) $order->rounding_adjustment,
                 'total_amount' => (float) $order->total_amount,
                 'cash_given' => $order->cash_given !== null ? (float) $order->cash_given : null,
                 'change_amount' => $order->change_amount !== null ? (float) $order->change_amount : null,
             ],
         ];
+    }
+
+    private function taxSummary(Collection $items): array
+    {
+        $dpp = 0;
+        $lines = [];
+
+        foreach ($items as $item) {
+            $gross = $this->cents($item->subtotal);
+            $rate = $item->tax_rate;
+            $hasRate = is_numeric($rate) && (float) $rate > 0;
+            $rawIncluded = $item->getRawOriginal('tax_included');
+            $included = $item->tax_included === true;
+            $exclusive = $rawIncluded !== null && $item->tax_included === false;
+
+            if ($included && $hasRate) {
+                $rateBasisPoints = (int) round((float) $rate * 100);
+                $lineDpp = (int) round($gross * 10000 / (10000 + $rateBasisPoints), 0, PHP_ROUND_HALF_UP);
+                $lineTax = $gross - $lineDpp;
+                $dpp += $lineDpp;
+                $this->addSummaryLine($lines, $item, $lineDpp, $lineTax, true);
+            } elseif ($hasRate && $exclusive && is_numeric($item->taxable_base) && is_numeric($item->tax_amount)) {
+                $lineDpp = $this->cents($item->taxable_base);
+                $dpp += $lineDpp;
+                $this->addSummaryLine($lines, $item, $lineDpp, $this->cents($item->tax_amount), false);
+            } else {
+                $dpp += is_numeric($item->taxable_base) ? $this->cents($item->taxable_base) : $gross;
+                $lines['unknown'] ??= ['label' => 'Pajak tidak tersedia', 'status' => 'unknown', 'dpp' => null, 'tax_amount' => null];
+            }
+        }
+
+        return ['dpp' => $dpp / 100, 'lines' => array_values($lines)];
+    }
+
+    private function addSummaryLine(array &$lines, object $item, int $dpp, int $tax, bool $included): void
+    {
+        $name = $item->tax_name ?: ($item->tax_code ?: 'Pajak');
+        $rate = rtrim(rtrim(number_format((float) $item->tax_rate, 2, '.', ''), '0'), '.');
+        $key = ($included ? 'included:' : 'exclusive:').$name.'|'.$rate;
+
+        if (! isset($lines[$key])) {
+            $lines[$key] = [
+                'label' => $included ? "Termasuk {$name} {$rate}%" : "{$name} {$rate}%",
+                'status' => $included ? 'included' : 'exclusive',
+                'dpp' => 0,
+                'tax_amount' => 0,
+            ];
+        }
+
+        $lines[$key]['dpp'] += $dpp / 100;
+        $lines[$key]['tax_amount'] += $tax / 100;
+    }
+
+    private function cents(mixed $amount): int
+    {
+        return (int) round((float) $amount * 100, 0, PHP_ROUND_HALF_UP);
     }
 }
