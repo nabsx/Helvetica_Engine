@@ -75,7 +75,7 @@
                         <summary class="flex cursor-pointer list-none items-center justify-between gap-4">
                             <div>
                                 <p class="font-semibold">{{ $order->order_number }}</p>
-                                <p class="mt-1 text-xs text-slate-500">{{ strtoupper($order->payment_type) }} · {{ $order->created_at?->format('H:i') }}</p>
+                                <p class="mt-1 text-xs text-slate-500">{{ strtoupper($order->payment_type) }} · {{ $order->created_at?->timezone('Asia/Jakarta')->format('H:i') }}</p>
                             </div>
                             <div class="flex items-center gap-4">
                                 <span class="font-semibold">Rp {{ number_format($order->total_amount, 0, ',', '.') }}</span>

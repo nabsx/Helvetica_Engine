@@ -7,6 +7,7 @@ use App\Http\Requests\StoreOrderRequest;
 use App\Models\Order;
 use App\Models\Product;
 use App\Services\ActivityLogService;
+use App\Services\DashboardService;
 use App\Services\FinancialCalculationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
@@ -81,7 +82,7 @@ class OrderController extends Controller
 
             $config = $financials['gateway_config'];
             $order = Order::create([
-                'order_number' => 'HLV-'.now()->format('YmdHis').'-'.strtoupper(bin2hex(random_bytes(3))),
+                'order_number' => 'HLV-'.now(DashboardService::OPERATIONAL_TIMEZONE)->format('YmdHis').'-'.strtoupper(bin2hex(random_bytes(3))),
                 'user_id' => Auth::id(), 'shift_id' => $activeShift->id,
                 'subtotal' => $financials['subtotal'], 'tax_amount' => $financials['total_tax'],
                 'total_tax' => $financials['total_tax'], 'total_amount' => $financials['total_amount'],

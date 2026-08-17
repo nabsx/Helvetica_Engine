@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Expense;
 use App\Models\Order;
+use App\Services\DashboardService;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -12,17 +13,16 @@ class SalesReportController extends Controller
 {
     public function index(Request $request): View
     {
-        $tanggal = $request->string('tanggal')->toString() ?: now()->toDateString();
+        $tanggal = $request->string('tanggal')->toString() ?: now(DashboardService::OPERATIONAL_TIMEZONE)->toDateString();
 
         try {
-            $hari = CarbonImmutable::createFromFormat('Y-m-d', $tanggal);
+            $tanggal = CarbonImmutable::createFromFormat('Y-m-d', $tanggal, DashboardService::OPERATIONAL_TIMEZONE)->toDateString();
         } catch (\Throwable) {
-            $hari = CarbonImmutable::today();
-            $tanggal = $hari->toDateString();
+            $tanggal = now(DashboardService::OPERATIONAL_TIMEZONE)->toDateString();
         }
 
         return view('admin.sales-report', [
-            'laporan' => $this->getLaporanHarian($hari),
+            'laporan' => $this->getLaporanHarian($tanggal),
             'tanggal' => $tanggal,
         ]);
     }

@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Services\DashboardService;
 use Carbon\CarbonImmutable;
 
 class Order extends Model
@@ -99,6 +100,6 @@ class Order extends Model
      */
     public static function formatOrderNumber(int $id): string
     {
-        return sprintf('HLV-%s-%04d', now()->format('Ymd'), $id);
+        return sprintf('HLV-%s-%04d', now(DashboardService::OPERATIONAL_TIMEZONE)->format('Ymd'), $id);
     }
 }

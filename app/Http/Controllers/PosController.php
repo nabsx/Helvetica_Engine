@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Category;
+use App\Services\DashboardService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 
@@ -31,7 +32,7 @@ class PosController extends Controller
                     'order_number' => $order->order_number,
                     'total_amount' => $order->total_amount,
                     'status' => $order->status,
-                    'created_at' => $order->created_at->format('H:i'),
+                    'created_at' => $order->created_at->timezone(DashboardService::OPERATIONAL_TIMEZONE)->format('H:i'),
                     'can_request_cancellation' => $order->status === 'paid' && $order->cancellationRequests->isEmpty(),
                     'has_pending_cancellation' => $order->status === 'paid' && $order->cancellationRequests->isNotEmpty(),
                 ])

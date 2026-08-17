@@ -20,7 +20,7 @@ class ReceiptService
             ],
             'order' => [
                 'number' => $order->order_number,
-                'date' => $order->created_at?->format('d/m/Y H:i'),
+                'date' => $order->created_at?->timezone(DashboardService::OPERATIONAL_TIMEZONE)->format('d/m/Y H:i'),
                 'cashier' => $order->user?->name,
                 'payment_type' => $order->payment_type,
                 'items' => $order->items->map(fn ($item): array => [
