@@ -27,7 +27,7 @@
             @foreach ($cards as $card)
                 <article class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
                     <p class="text-sm text-slate-500">{{ $card['label'] }}</p>
-                    <p class="mt-2 text-xl font-bold text-slate-900">{{ $card['value'] }}</p>
+                    <p class="mt-2 text-xl font-mono tabular-nums font-semibold text-slate-900">{{ $card['value'] }}</p>
                 </article>
             @endforeach
         </section>

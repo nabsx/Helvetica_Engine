@@ -72,7 +72,7 @@
                             </div>
                             <div class="p-3">
                                 <p class="font-semibold text-slate-800 text-sm truncate" x-text="product.name"></p>
-                                <p class="text-emerald-600 font-bold text-sm mt-1" x-text="formatRupiah(product.price)"></p>
+                                <p class="text-emerald-600 font-mono tabular-nums font-semibold text-sm mt-1" x-text="formatRupiah(product.price)"></p>
                                 <p class="text-xs mt-1" :class="product.stock <= product.low_stock_threshold ? 'text-amber-600 font-semibold' : 'text-slate-400'" x-text="'Stok: ' + product.stock"></p>
                             </div>
                         </button>
@@ -99,7 +99,7 @@
                             <p class="text-xs text-slate-400" x-text="formatRupiah(item.price) + ' / item'"></p>
                             <div class="flex items-center gap-2 mt-2">
                                 <button @click="decQty(index)" class="w-6 h-6 rounded-full bg-slate-100 hover:bg-slate-200 text-sm font-bold">−</button>
-                                <span class="text-sm font-semibold w-5 text-center" x-text="item.quantity"></span>
+                                <span class="text-sm font-mono tabular-nums font-semibold w-5 text-center" x-text="item.quantity"></span>
                                 <button @click="incQty(index)" :disabled="item.quantity >= item.stock" class="w-6 h-6 rounded-full bg-slate-100 hover:bg-slate-200 text-sm font-bold disabled:opacity-40">+</button>
                                 <button @click="removeItem(index)" class="ml-2 text-xs text-red-400 hover:text-red-600">Hapus</button>
                             </div>
@@ -130,7 +130,7 @@
                         <span>Pembulatan</span>
                         <span x-text="formatRupiah(roundingAdjustment)"></span>
                     </div>
-                    <div class="flex justify-between font-bold text-slate-800 text-base pt-1 border-t">
+                    <div class="flex justify-between font-bold text-slate-800 text-base pt-1 border-t"><span class="sr-only">Financial summary</span>
                         <span>Total Bayar</span>
                         <span x-text="calculating ? '…' : formatRupiah(totalAmount)"></span>
                     </div>

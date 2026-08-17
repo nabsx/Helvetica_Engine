@@ -9,7 +9,7 @@
         * { box-sizing: border-box; }
         body { width: 58mm; margin: 0 auto; padding: 3mm; color: #111; background: #fff; font: 11px/1.35 "Courier New", monospace; }
         .center { text-align: center; }
-        .row { display: flex; justify-content: space-between; gap: 8px; }
+        .row { display: flex; justify-content: space-between; gap: 8px; font-family: "JetBrains Mono", "Courier New", monospace; font-variant-numeric: tabular-nums; }
         .item-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .muted { color: #555; }
         hr { border: 0; border-top: 1px dashed #111; margin: 7px 0; }

@@ -16,7 +16,7 @@
         </div>
         <div class="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             @foreach([['Transaksi', $summary->total_transaksi ?? 0], ['Pendapatan kotor', 'Rp'.number_format($summary->gross ?? 0, 0, ',', '.')], ['PB1 terkumpul', 'Rp'.number_format($summary->pajak ?? 0, 0, ',', '.')], ['Pendapatan bersih', 'Rp'.number_format($summary->dpp ?? 0, 0, ',', '.')]] as [$label, $value])
-                <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><p class="text-sm text-slate-500">{{ $label }}</p><p class="mt-3 text-2xl font-black tracking-tight">{{ $value }}</p></div>
+                <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><p class="text-sm text-slate-500">{{ $label }}</p><p class="mt-3 text-2xl font-mono tabular-nums font-semibold tracking-tight">{{ $value }}</p></div>
             @endforeach
         </div>
         <div class="mt-6 grid gap-6 lg:grid-cols-2">
