@@ -47,7 +47,7 @@ class AdminCancellationController extends Controller
             return back()->with('error', 'Pengajuan ini sudah diproses sebelumnya.');
         }
 
-        DB::transaction(function () use ($cancellationRequest, $data) {
+        DB::transaction(function () use ($cancellationRequest, $data, $cashDrawer, $activityLogs) {
             $order = Order::query()->whereKey($cancellationRequest->order_id)->lockForUpdate()->first();
 
             if ($order->status !== 'paid') {
