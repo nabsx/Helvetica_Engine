@@ -3,6 +3,7 @@
 use App\Http\Controllers\AdminCancellationController;
 use App\Http\Controllers\AdminCategoryController;
 use App\Http\Controllers\AdminDashboardController;
+use App\Http\Controllers\AdminExpenseController;
 use App\Http\Controllers\AdminProductController;
 use App\Http\Controllers\AdminUserController;
 use App\Http\Controllers\AuthController;
@@ -31,6 +32,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/shifts/{shift}', [CashMonitoringController::class, 'show'])->name('shifts.show');
         Route::post('/shifts/{shift}/approve', [CashMonitoringController::class, 'approve'])->name('shifts.approve');
         Route::get('/laporan-penjualan', [SalesReportController::class, 'index'])->name('sales-report');
+        Route::get('/expenses', [AdminExpenseController::class, 'index'])->name('expenses.index');
         Route::redirect('/reports', '/admin/dashboard');
         Route::resource('products', AdminProductController::class)->except(['show']);
         Route::resource('categories', AdminCategoryController::class)->only(['index', 'store', 'update', 'destroy']);

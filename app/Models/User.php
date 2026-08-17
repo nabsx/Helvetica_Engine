@@ -45,6 +45,11 @@ class User extends Authenticatable
         return $this->hasMany(Order::class);
     }
 
+    public function expenses(): HasMany
+    {
+        return $this->hasMany(Expense::class, 'created_by');
+    }
+
     /** The single open shift for this user, if one exists. */
     public function activeShift(): HasOne
     {

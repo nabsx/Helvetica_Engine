@@ -59,7 +59,7 @@ class FinancialCalculationService
         $feeCents = $config
             ? $this->percentageCents($basisCents, (string) $config->fee_rate) + $this->cents($config->fee_flat)
             : 0;
-        $customerTotalCents = $subtotalCents + $taxCents + $feeCents;
+        $customerTotalCents = $subtotalCents + $taxCents;
 
         return [
             'items' => $lines,

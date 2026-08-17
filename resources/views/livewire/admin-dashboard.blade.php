@@ -30,6 +30,7 @@
             ['Orders', number_format($orderCount, 0, ',', '.'), 'Paid orders', 'text-slate-900'],
             ['AOV', $aov === null ? 'N/A' : 'Rp'.number_format($aov, 0, ',', '.'), 'Average order value', 'text-slate-900'],
             ['Gross', 'Rp'.number_format($gross['value'], 0, ',', '.'), $gross['status'], 'text-slate-900'],
+            ['Expenses', 'Rp'.number_format($expenses['value'], 0, ',', '.'), $expenses['status'], 'text-amber-600'],
             ['Net', 'Rp'.number_format($net['value'], 0, ',', '.'), $net['status'], 'text-slate-900'],
         ] as [$label, $value, $hint, $valueColor])
             <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">

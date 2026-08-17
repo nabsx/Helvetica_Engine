@@ -18,6 +18,7 @@ class AdminDashboard extends Component
         'cash-movement-recorded' => '$refresh',
         'refund-approved' => '$refresh',
         'approval-updated' => '$refresh',
+        'expense-created' => '$refresh',
     ];
 
     public function mount(): void

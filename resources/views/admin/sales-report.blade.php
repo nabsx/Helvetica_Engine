@@ -22,6 +22,8 @@
                     ['label' => 'PB1 Terkumpul', 'value' => 'Rp '.number_format($laporan['total_pajak'], 0, ',', '.')],
                     ['label' => 'Pendapatan Bersih / DPP', 'value' => 'Rp '.number_format($laporan['total_pendapatan_bersih'], 0, ',', '.')],
                     ['label' => 'Pembulatan CASH', 'value' => 'Rp '.number_format($laporan['total_uang_pembulatan'], 0, ',', '.')],
+                    ['label' => 'Total Expense', 'value' => 'Rp '.number_format($laporan['total_expense'], 0, ',', '.')],
+                    ['label' => 'Net Profit', 'value' => 'Rp '.number_format($laporan['net_profit'], 0, ',', '.')],
                 ];
             @endphp
             @foreach ($cards as $card)
