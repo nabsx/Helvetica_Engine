@@ -19,13 +19,32 @@ class FinancialCalculationService
             $quantity = (int) $item['quantity'];
             $unitPriceCents = $this->cents($product->price);
             $lineNetCents = $unitPriceCents * $quantity;
-            $taxableBaseCents = $lineNetCents;
-            $lineTaxCents = $product->tax_included
-                ? 0
-                : $this->percentageCents($taxableBaseCents, (string) $product->tax_rate);
+
+            // PB1 snapshot for this line — independent of how total_amount is
+            // built below. When the price is tax-inclusive, the tax is baked
+            // into $lineNetCents already, so it must be extracted (back-
+            // calculated) rather than reported as 0. When exclusive, the tax
+            // is calculated on top of the base as before. This mirrors the
+            // formula ReceiptService::taxSummary() already uses at render
+            // time, so stored snapshots and printed receipts agree.
+            if ($product->tax_included) {
+                $rateBasisPoints = (int) round(((float) $product->tax_rate) * 100);
+                $taxableBaseCents = $rateBasisPoints > 0
+                    ? (int) round($lineNetCents * 10000 / (10000 + $rateBasisPoints), 0, PHP_ROUND_HALF_UP)
+                    : $lineNetCents;
+                $lineTaxCents = $lineNetCents - $taxableBaseCents;
+            } else {
+                $taxableBaseCents = $lineNetCents;
+                $lineTaxCents = $this->percentageCents($taxableBaseCents, (string) $product->tax_rate);
+            }
 
             $subtotalCents += $lineNetCents;
-            $taxCents += $lineTaxCents;
+            // Order-level total_tax/total_amount math is intentionally
+            // unchanged: for tax-inclusive lines the tax is already inside
+            // $lineNetCents (and thus $subtotalCents), so it must NOT be
+            // added again here or total_amount would double-count it. Only
+            // exclusive-tax lines add their tax on top, exactly as before.
+            $taxCents += $product->tax_included ? 0 : $lineTaxCents;
             $lines[] = [
                 'product_id' => $product->id,
                 'product_name' => $product->name,

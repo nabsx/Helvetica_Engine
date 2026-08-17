@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Http\Controllers\SalesReportController;
 use App\Models\Category;
+use App\Models\Expense;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\Shift;
@@ -45,16 +46,61 @@ class ReportingAggregationTest extends TestCase
         $this->assertSame(0, app(SalesReportController::class)->getLaporanHarian('2026-08-19')['total_transaksi']);
     }
 
+    public function test_two_order_scenario_matches_pb1_dpp_gross_and_net_profit(): void
+    {
+        [$order1] = $this->createPaidOrder('2026-08-18 10:00:00', 35000);
+        $order1->items()->create([
+            'product_id' => $this->productId, 'product_name' => 'Item A', 'quantity' => 1,
+            'price' => 35000, 'unit_cost' => 12000, 'tax_rate' => 0, 'tax_included' => true,
+            'taxable_base' => 32727, 'tax_amount' => 2273, 'subtotal' => 35000,
+        ]);
+
+        [$order2] = $this->createPaidOrder('2026-08-18 11:00:00', 70000);
+        $order2->items()->create([
+            'product_id' => $this->productId, 'product_name' => 'Item B', 'quantity' => 1,
+            'price' => 70000, 'unit_cost' => 22000, 'tax_rate' => 0, 'tax_included' => true,
+            'taxable_base' => 63636, 'tax_amount' => 6364, 'subtotal' => 70000,
+        ]);
+
+        Expense::create([
+            'expense_number' => 'EXP-20260818-001',
+            'expense_date' => '2026-08-18',
+            'category' => 'Operasional',
+            'description' => 'Operasional harian',
+            'amount' => 25000,
+            'created_by' => $this->expenseUserId,
+        ]);
+
+        $dashboard = app(DashboardService::class)->snapshot('2026-08-18');
+        $report = app(SalesReportController::class)->getLaporanHarian('2026-08-18');
+
+        // Sales & PB1/DPP
+        $this->assertSame(105000.0, $report['total_pendapatan_kotor']);
+        $this->assertSame(8637.0, $report['total_pajak']);              // PB1 Terkumpul
+        $this->assertSame(96363.0, $report['total_pendapatan_bersih']); // DPP
+        $this->assertSame(8637.0, $dashboard['tax']);
+        $this->assertSame(96363.0, $dashboard['dpp']);
+
+        // Gross / Net profit
+        $this->assertSame(62363.0, $report['gross_profit']);
+        $this->assertSame(37363.0, $report['net_profit']);
+        $this->assertSame(62363.0, $dashboard['gross']['value']);
+        $this->assertSame(37363.0, $dashboard['net']['value']);
+    }
+
     private int $productId;
 
-    private function createPaidOrder(string $createdAt): array
+    private int $expenseUserId;
+
+    private function createPaidOrder(string $createdAt, float $totalAmount = 10000): array
     {
         $user = User::factory()->create();
+        $this->expenseUserId = $user->id;
         $shift = Shift::create(['user_id' => $user->id, 'start_time' => $createdAt, 'initial_cash' => 0, 'status' => 'open']);
         $category = Category::create(['name' => uniqid('cat'), 'slug' => uniqid('cat-')]);
         $product = Product::create(['category_id' => $category->id, 'name' => uniqid('product'), 'price' => 10000, 'cost_price' => 3000, 'is_available' => true, 'stock' => 10, 'low_stock_threshold' => 1]);
         $this->productId = $product->id;
-        $order = Order::create(['order_number' => uniqid('HLV-'), 'user_id' => $user->id, 'shift_id' => $shift->id, 'subtotal' => 10000, 'tax_amount' => 0, 'total_tax' => 0, 'total_amount' => 10000, 'payment_type' => 'CASH', 'net_received' => 10000, 'status' => 'paid', 'created_at' => CarbonImmutable::parse($createdAt, 'UTC')]);
+        $order = Order::create(['order_number' => uniqid('HLV-'), 'user_id' => $user->id, 'shift_id' => $shift->id, 'subtotal' => $totalAmount, 'tax_amount' => 0, 'total_tax' => 0, 'total_amount' => $totalAmount, 'payment_type' => 'CASH', 'net_received' => $totalAmount, 'status' => 'paid', 'created_at' => CarbonImmutable::parse($createdAt, 'UTC')]);
         return [$order];
     }
 }

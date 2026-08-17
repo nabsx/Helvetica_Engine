@@ -40,10 +40,10 @@ class DashboardService
         }
         $dppCents = (int) round($hppRows->sum(fn ($item) => $item->dppAmount()) * 100, 0, PHP_ROUND_HALF_UP);
         $taxCents = (int) round($hppRows->sum(fn ($item) => $item->taxAmount()) * 100, 0, PHP_ROUND_HALF_UP);
-        $gross = ['value' => ($dppCents - $cogsCents) / 100, 'status' => $unresolvedHppRows > 0 ? 'Sebagian HPP belum tersedia' : 'HPP tercakup'];
+        $gross = ['value' => (float) (($dppCents - $cogsCents) / 100), 'status' => $unresolvedHppRows > 0 ? 'Sebagian HPP belum tersedia' : 'HPP tercakup'];
         $expenseValue = round((float) Expense::query()->forJakartaDate($date)->sum('amount'), 2);
         $expenses = ['value' => $expenseValue, 'status' => $expenseValue > 0 ? 'Biaya operasional hari ini' : 'Tidak ada expense tercatat'];
-        $net = ['value' => $gross['value'] - $expenseValue, 'status' => 'DPP - HPP - Expenses'];
+        $net = ['value' => (float) ($gross['value'] - $expenseValue), 'status' => 'DPP - HPP - Expenses'];
 
         $paymentBreakdown = collect(['CASH' => $cash, 'QRIS' => $qris])->map(function (float $amount) use ($revenue): array {
             return ['amount' => $amount, 'percent' => $revenue > 0 ? round($amount / $revenue * 100) : 0];
@@ -79,8 +79,8 @@ class DashboardService
         });
 
         return compact('localDate', 'orderCount', 'revenue', 'cash', 'qris', 'aov', 'paymentBreakdown', 'cashMonitoring', 'topProducts', 'recentOrders', 'activities', 'lowStock', 'chart', 'gross', 'net', 'expenses', 'resolvedHppRows', 'unresolvedHppRows') + [
-            'dpp' => $dppCents / 100,
-            'tax' => $taxCents / 100,
+            'dpp' => (float) ($dppCents / 100),
+            'tax' => (float) ($taxCents / 100),
             'accountingNote' => $unresolvedHppRows > 0
                 ? "Profit dihitung dari HPP yang tersedia; {$unresolvedHppRows} baris belum memiliki HPP. Net = DPP - HPP - expense Jakarta."
                 : 'Profit dihitung dari snapshot HPP per item atau fallback harga modal produk. Net = DPP - HPP - expense Jakarta.',

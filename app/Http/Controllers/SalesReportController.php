@@ -41,22 +41,22 @@ class SalesReportController extends Controller
         $payments = $orderRows->groupBy('payment_type');
         $totalExpense = (float) Expense::query()->forJakartaDate($hari->toDateString())->sum('amount');
         $cogs = $orderRows->flatMap->items->sum(fn ($item) => (float) ($item->unit_cost ?? $item->product?->cost_price ?? 0) * (int) $item->quantity);
-        $grossProfit = ($dppCents / 100) - $cogs;
+        $grossProfit = (float) (($dppCents / 100) - $cogs);
 
         return [
             'tanggal' => $hari->toDateString(),
             'total_transaksi' => $orderRows->count(),
             'total_pendapatan_kotor' => (float) $orderRows->sum('total_amount'),
             'total_pendapatan' => (float) $orderRows->sum('total_amount'),
-            'total_pajak' => array_sum($taxTotals) / 100,
-            'total_pendapatan_bersih' => $dppCents / 100,
+            'total_pajak' => (float) (array_sum($taxTotals) / 100),
+            'total_pendapatan_bersih' => (float) ($dppCents / 100),
             'total_expense' => $totalExpense,
             'gross_profit' => $grossProfit,
-            'net_profit' => $grossProfit - $totalExpense,
+            'net_profit' => (float) ($grossProfit - $totalExpense),
             'total_uang_pembulatan' => (float) $orderRows->where('payment_type', 'CASH')->sum('rounding_adjustment'),
             'pajak_terkumpul' => collect($taxTotals)->map(fn ($amount, $key) => [
                 'label' => 'Termasuk '.str_replace('|', ' ', $key).'%',
-                'amount' => $amount / 100,
+                'amount' => (float) ($amount / 100),
             ])->values()->all(),
             'transaksi' => $orderRows,
             'breakdown_pembayaran' => [
