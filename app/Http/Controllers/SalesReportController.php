@@ -47,7 +47,7 @@ class SalesReportController extends Controller
             ->with('items.product')->get();
         $items = $orders->flatMap->items;
         $dppCents = (int) round($items->sum(fn ($item) => $item->dppAmount()) * 100, 0, PHP_ROUND_HALF_UP);
-        $taxCents = (int) round($items->sum(fn ($item) => $item->taxAmount()) * 100, 0, PHP_ROUND_HALF_UP);
+        $taxCents = (int) round($orders->sum(fn ($order) => $this->orderTaxAmount($order)) * 100, 0, PHP_ROUND_HALF_UP);
         $cogs = (float) $items->sum(fn ($item) => (float) ($item->unit_cost ?? $item->product?->cost_price ?? 0) * (int) $item->quantity);
         $expense = (float) Expense::query()->whereBetween('expense_date', [$start->toDateString(), $end->toDateString()])->sum('amount');
         $grossProfit = ($dppCents / 100) - $cogs;
@@ -65,6 +65,17 @@ class SalesReportController extends Controller
             'breakdown_pembayaran' => ['CASH' => $this->paymentSummaryFromGroup($payments->get('CASH')), 'QRIS' => $this->paymentSummaryFromGroup($payments->get('QRIS'))],
             'trend' => $this->trend($orders, $start, $end, $periode),
         ];
+    }
+
+    private function orderTaxAmount(Order $order): float
+    {
+        $storedTax = (float) ($order->total_tax ?? $order->tax_amount ?? 0);
+
+        if ($storedTax > 0) {
+            return $storedTax;
+        }
+
+        return (float) $order->items->sum(fn ($item) => $item->taxAmount());
     }
 
     private function trend(Collection $orders, CarbonImmutable $start, CarbonImmutable $end, string $periode): array
