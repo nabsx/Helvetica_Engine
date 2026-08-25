@@ -28,7 +28,8 @@ class AdminDashboard extends Component
     public function mount(): void
     {
         $this->tanggal = now(DashboardService::OPERATIONAL_TIMEZONE)->toDateString();
-        $this->notifiedLowStockIds = $this->currentLowStockIds();
+        // Start empty so the dashboard announces current low-stock products when it hydrates.
+        $this->notifiedLowStockIds = [];
     }
 
     public function updatedPeriod(): void

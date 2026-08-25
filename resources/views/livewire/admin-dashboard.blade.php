@@ -1,4 +1,4 @@
-<div wire:poll.15s="refreshDashboard" x-data="{ lowStockNotice: null }" x-on:low-stock-detected.window="lowStockNotice = $event.detail.products" class="relative space-y-8">
+<div wire:poll.15s="refreshDashboard" x-data="{ lowStockNotice: null }" x-init="$nextTick(() => $wire.refreshDashboard())" x-on:low-stock-detected.window="lowStockNotice = $event.detail.products" class="relative space-y-8">
     <div
         x-cloak
         x-show="lowStockNotice"
