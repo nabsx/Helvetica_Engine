@@ -7,80 +7,82 @@ use App\Models\Order;
 use App\Services\DashboardService;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\View\View;
 
 class SalesReportController extends Controller
 {
+    private const TIMEZONE = DashboardService::OPERATIONAL_TIMEZONE;
+
     public function index(Request $request): View
     {
-        $tanggal = $request->string('tanggal')->toString() ?: now(DashboardService::OPERATIONAL_TIMEZONE)->toDateString();
+        $periode = in_array($request->string('periode')->toString(), ['harian', 'bulanan', 'tahunan'], true)
+            ? $request->string('periode')->toString()
+            : 'harian';
+        $today = now(self::TIMEZONE);
+        $tanggal = $this->parseDate($request->string('tanggal')->toString(), $today->toDateString());
+        $bulan = $this->parseDate($request->string('bulan')->toString().'-01', $today->startOfMonth()->toDateString(), 'Y-m-d', 'Y-m');
+        $tahun = $this->parseDate($request->string('tahun')->toString(), $today->startOfYear()->toDateString(), 'Y-m-d', 'Y');
 
-        try {
-            $tanggal = CarbonImmutable::createFromFormat('Y-m-d', $tanggal, DashboardService::OPERATIONAL_TIMEZONE)->toDateString();
-        } catch (\Throwable) {
-            $tanggal = now(DashboardService::OPERATIONAL_TIMEZONE)->toDateString();
-        }
+        [$start, $end, $periodValue] = match ($periode) {
+            'bulanan' => [CarbonImmutable::parse($bulan, self::TIMEZONE)->startOfMonth(), CarbonImmutable::parse($bulan, self::TIMEZONE)->endOfMonth(), substr($bulan, 0, 7)],
+            'tahunan' => [CarbonImmutable::parse($tahun, self::TIMEZONE)->startOfYear(), CarbonImmutable::parse($tahun, self::TIMEZONE)->endOfYear(), substr($tahun, 0, 4)],
+            default => [CarbonImmutable::parse($tanggal, self::TIMEZONE)->startOfDay(), CarbonImmutable::parse($tanggal, self::TIMEZONE)->endOfDay(), $tanggal],
+        };
 
-        return view('admin.sales-report', [
-            'laporan' => $this->getLaporanHarian($tanggal),
-            'tanggal' => $tanggal,
-        ]);
+        $laporan = $this->buildReport($start, $end, $periode);
+        return view('admin.sales-report', compact('laporan', 'periode', 'tanggal', 'bulan', 'tahun', 'periodValue'));
     }
 
     public function getLaporanHarian(CarbonImmutable|string $tanggal): array
     {
-        $hari = is_string($tanggal)
-            ? CarbonImmutable::createFromFormat('Y-m-d', $tanggal, 'Asia/Jakarta')
-            : $tanggal->setTimezone('Asia/Jakarta');
-        $orders = Order::query()->paid()->forJakartaDate($hari->toDateString())->with('items.product');
-        $orderRows = $orders->get();
-        $dppCents = (int) round($orderRows->flatMap->items->sum(fn ($item) => $item->dppAmount()) * 100, 0, PHP_ROUND_HALF_UP);
-        $taxCents = (int) round($orderRows->flatMap->items->sum(fn ($item) => $item->taxAmount()) * 100, 0, PHP_ROUND_HALF_UP);
-        $taxTotals = ['PB1|10' => $taxCents];
+        $day = is_string($tanggal) ? CarbonImmutable::createFromFormat('Y-m-d', $tanggal, self::TIMEZONE) : $tanggal->setTimezone(self::TIMEZONE);
+        return $this->buildReport($day->startOfDay(), $day->endOfDay(), 'harian');
+    }
 
-        $payments = $orderRows->groupBy('payment_type');
-        $totalExpense = (float) Expense::query()->forJakartaDate($hari->toDateString())->sum('amount');
-        $cogs = $orderRows->flatMap->items->sum(fn ($item) => (float) ($item->unit_cost ?? $item->product?->cost_price ?? 0) * (int) $item->quantity);
-        $grossProfit = (float) (($dppCents / 100) - $cogs);
+    private function buildReport(CarbonImmutable $start, CarbonImmutable $end, string $periode): array
+    {
+        $orders = Order::query()->paid()
+            ->whereBetween('created_at', [$start->utc(), $end->utc()])
+            ->with('items.product')->get();
+        $items = $orders->flatMap->items;
+        $dppCents = (int) round($items->sum(fn ($item) => $item->dppAmount()) * 100, 0, PHP_ROUND_HALF_UP);
+        $taxCents = (int) round($items->sum(fn ($item) => $item->taxAmount()) * 100, 0, PHP_ROUND_HALF_UP);
+        $cogs = (float) $items->sum(fn ($item) => (float) ($item->unit_cost ?? $item->product?->cost_price ?? 0) * (int) $item->quantity);
+        $expense = (float) Expense::query()->whereBetween('expense_date', [$start->toDateString(), $end->toDateString()])->sum('amount');
+        $grossProfit = ($dppCents / 100) - $cogs;
+        $payments = $orders->groupBy('payment_type');
 
         return [
-            'tanggal' => $hari->toDateString(),
-            'total_transaksi' => $orderRows->count(),
-            'total_pendapatan_kotor' => (float) $orderRows->sum('total_amount'),
-            'total_pendapatan' => (float) $orderRows->sum('total_amount'),
-            'total_pajak' => (float) (array_sum($taxTotals) / 100),
-            'total_pendapatan_bersih' => (float) ($dppCents / 100),
-            'total_expense' => $totalExpense,
-            'gross_profit' => $grossProfit,
-            'net_profit' => (float) ($grossProfit - $totalExpense),
-            'total_uang_pembulatan' => (float) $orderRows->where('payment_type', 'CASH')->sum('rounding_adjustment'),
-            'pajak_terkumpul' => collect($taxTotals)->map(fn ($amount, $key) => [
-                'label' => 'Termasuk '.str_replace('|', ' ', $key).'%',
-                'amount' => (float) ($amount / 100),
-            ])->values()->all(),
-            'transaksi' => $orderRows,
-            'breakdown_pembayaran' => [
-                'CASH' => $this->paymentSummaryFromGroup($payments->get('CASH')),
-                'QRIS' => $this->paymentSummaryFromGroup($payments->get('QRIS')),
-            ],
+            'periode' => $periode, 'tanggal' => $start->toDateString(),
+            'total_transaksi' => $orders->count(), 'total_pendapatan_kotor' => (float) $orders->sum('total_amount'),
+            'total_pendapatan' => (float) $orders->sum('total_amount'), 'total_pajak' => $taxCents / 100,
+            'total_pendapatan_bersih' => $dppCents / 100, 'total_expense' => $expense,
+            'gross_profit' => $grossProfit, 'net_profit' => $grossProfit - $expense,
+            'total_uang_pembulatan' => (float) $orders->where('payment_type', 'CASH')->sum('rounding_adjustment'),
+            'pajak_terkumpul' => [['label' => 'Termasuk PB1 10%', 'amount' => $taxCents / 100]],
+            'transaksi' => $orders,
+            'breakdown_pembayaran' => ['CASH' => $this->paymentSummaryFromGroup($payments->get('CASH')), 'QRIS' => $this->paymentSummaryFromGroup($payments->get('QRIS'))],
+            'trend' => $this->trend($orders, $start, $end, $periode),
         ];
     }
 
-    private function paymentSummaryFromGroup($orders): array
+    private function trend(Collection $orders, CarbonImmutable $start, CarbonImmutable $end, string $periode): array
     {
-        return [
-            'jumlah_transaksi' => $orders?->count() ?? 0,
-            'total_pendapatan' => (float) ($orders?->sum('subtotal') ?? 0),
-            'total_dibayar' => (float) ($orders?->sum('total_amount') ?? 0),
-        ];
+        $keys = $periode === 'tahunan'
+            ? collect(range(1, 12))->map(fn ($month) => $start->setMonth($month)->format('Y-m'))
+            : ($periode === 'bulanan' ? collect(range(0, $start->daysInMonth - 1))->map(fn ($day) => $start->addDays($day)->toDateString()) : collect([$start->toDateString()]));
+        $grouped = $orders->groupBy(fn ($order) => $order->created_at?->timezone(self::TIMEZONE)->format($periode === 'tahunan' ? 'Y-m' : 'Y-m-d'));
+        return $keys->map(fn ($key) => ['label' => $periode === 'tahunan' ? CarbonImmutable::createFromFormat('Y-m', $key, self::TIMEZONE)->translatedFormat('M') : CarbonImmutable::parse($key, self::TIMEZONE)->format('d'), 'total_pendapatan' => (float) ($grouped->get($key)?->sum('total_amount') ?? 0), 'total_transaksi' => $grouped->get($key)?->count() ?? 0])->values()->all();
     }
 
-    private function paymentSummary(?object $payment): array
+    private function parseDate(string $value, string $fallback, string $format = 'Y-m-d', string $inputFormat = 'Y-m-d'): string
     {
-        return [
-            'jumlah_transaksi' => (int) ($payment->jumlah_transaksi ?? 0),
-            'total_pendapatan' => (float) ($payment->total_pendapatan ?? 0),
-            'total_dibayar' => (float) ($payment->total_dibayar ?? 0),
-        ];
+        try { return CarbonImmutable::createFromFormat($inputFormat, $value, self::TIMEZONE)->format($format); } catch (\Throwable) { return $fallback; }
+    }
+
+    private function paymentSummaryFromGroup(?Collection $orders): array
+    {
+        return ['jumlah_transaksi' => $orders?->count() ?? 0, 'total_pendapatan' => (float) ($orders?->sum('subtotal') ?? 0), 'total_dibayar' => (float) ($orders?->sum('total_amount') ?? 0)];
     }
 }
