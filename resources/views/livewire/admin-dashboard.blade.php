@@ -1,4 +1,38 @@
-<div wire:poll.15s="refreshDashboard" class="space-y-8">
+<div wire:poll.15s="refreshDashboard" x-data="{ lowStockNotice: null }" x-on:low-stock-detected.window="lowStockNotice = $event.detail.products" class="relative space-y-8">
+    <div
+        x-cloak
+        x-show="lowStockNotice"
+        x-transition:enter="transition ease-out duration-200"
+        x-transition:enter-start="translate-y-2 opacity-0"
+        x-transition:enter-end="translate-y-0 opacity-100"
+        x-transition:leave="transition ease-in duration-150"
+        x-transition:leave-start="translate-y-0 opacity-100"
+        x-transition:leave-end="translate-y-2 opacity-0"
+        x-on:click.outside="lowStockNotice = null"
+        class="fixed right-4 top-4 z-40 w-[min(24rem,calc(100vw-2rem))] rounded-2xl border border-rose-200 bg-white p-5 shadow-lg"
+        role="status"
+        aria-live="polite"
+    >
+        <div class="flex items-start justify-between gap-4">
+            <div>
+                <p class="text-base font-bold text-slate-900" x-text="`${lowStockNotice?.length ?? 0} produk stoknya mau habis`"></p>
+                <p class="mt-1 text-sm text-slate-500">Perlu diperiksa sebelum transaksi berikutnya.</p>
+            </div>
+            <button type="button" x-on:click="lowStockNotice = null" class="rounded-lg p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700" aria-label="Tutup notifikasi stok menipis">
+                <span aria-hidden="true" class="text-xl leading-none">&times;</span>
+            </button>
+        </div>
+        <div class="mt-4 divide-y divide-slate-100 rounded-xl border border-rose-100 bg-rose-50/60">
+            <template x-for="product in (lowStockNotice ?? [])" :key="product.id">
+                <div class="flex items-center justify-between gap-3 px-3 py-2.5 text-sm">
+                    <span class="min-w-0 truncate font-semibold text-slate-700" x-text="product.name"></span>
+                    <span class="shrink-0 font-mono tabular-nums font-bold text-rose-600" x-text="`${product.stock} tersisa`"></span>
+                </div>
+            </template>
+        </div>
+        <a href="{{ route('admin.products.index') }}" x-on:click="lowStockNotice = null" class="mt-4 inline-flex text-sm font-bold text-teal-600 hover:text-teal-700">Lihat semua</a>
+    </div>
+
     <header class="flex flex-col justify-between gap-6 border-b border-slate-200 pb-6 lg:flex-row lg:items-end">
         <div>
             <p class="text-xs font-bold uppercase tracking-[0.22em] text-teal-600">Helvetica POS / Operations</p>

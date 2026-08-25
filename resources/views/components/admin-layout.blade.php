@@ -6,6 +6,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ $title ?? 'Admin Panel' }} — Helvetica POS</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>[x-cloak] { display: none !important; }</style>
     @if(class_exists(\Livewire\Livewire::class)) @livewireStyles @endif
 </head>
 <body class="min-h-screen bg-[#f7f9fb] text-slate-900 antialiased">
