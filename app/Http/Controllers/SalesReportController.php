@@ -21,7 +21,7 @@ class SalesReportController extends Controller
             : 'harian';
         $today = now(self::TIMEZONE);
         $tanggal = $this->parseDate($request->string('tanggal')->toString(), $today->toDateString());
-        $bulan = $this->parseDate($request->string('bulan')->toString().'-01', $today->startOfMonth()->toDateString(), 'Y-m-d', 'Y-m');
+        $bulan = $this->parseDate($request->string('bulan')->toString(), $today->startOfMonth()->toDateString(), 'Y-m-d', 'Y-m');
         $tahun = $this->parseDate($request->string('tahun')->toString(), $today->startOfYear()->toDateString(), 'Y-m-d', 'Y');
 
         [$start, $end, $periodValue] = match ($periode) {
