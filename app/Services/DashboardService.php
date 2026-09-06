@@ -59,15 +59,16 @@ class DashboardService
             'status' => $shift->status === 'pending_close' ? 'Pending review' : 'Open',
         ]);
 
-        $topProducts = Product::query()->select('products.id', 'products.name')
+        $topProducts = Product::query()->select('products.id', 'products.name', 'categories.name as category_name')
             ->join('order_items', 'products.id', '=', 'order_items.product_id')
             ->join('orders', 'orders.id', '=', 'order_items.order_id')
+            ->leftJoin('categories', 'categories.id', '=', 'products.category_id')
             ->where('orders.status', 'paid')->whereBetween('orders.created_at', [$start, $end])
-            ->groupBy('products.id', 'products.name')->selectRaw('SUM(order_items.quantity) AS quantity')
+            ->groupBy('products.id', 'products.name', 'categories.name')->selectRaw('SUM(order_items.quantity) AS quantity')
             ->orderByDesc('quantity')->limit(5)->get();
 
-        $recentOrders = (clone $orders)->with('user')->latest()->limit(6)->get();
-        $activities = ActivityLog::query()->with('user')->latest()->limit(8)->get();
+        $recentOrders = (clone $orders)->with('user')->withCount('items')->latest()->limit(6)->get();
+        $activities = ActivityLog::query()->with(['user', 'subject'])->latest()->limit(8)->get();
         $lowStock = Product::query()->whereColumn('stock', '<=', 'low_stock_threshold')
             ->with('category')->orderBy('stock')->limit(6)->get();
 

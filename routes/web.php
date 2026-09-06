@@ -37,6 +37,8 @@ Route::middleware('auth')->group(function () {
         Route::resource('products', AdminProductController::class)->except(['show']);
         Route::patch('/products/{product}/stock', [AdminProductController::class, 'adjustStock'])->name('products.stock.adjust');
         Route::resource('categories', AdminCategoryController::class)->only(['index', 'store', 'update', 'destroy']);
+        Route::post('/categories/reorder', [AdminCategoryController::class, 'reorder'])->name('categories.reorder');
+        Route::patch('/categories/{category}/toggle', [AdminCategoryController::class, 'toggleActive'])->name('categories.toggle');
         Route::get('/users', [AdminUserController::class, 'index'])->name('users.index');
         Route::post('/users', [AdminUserController::class, 'store'])->name('users.store');
         Route::put('/users/{user}', [AdminUserController::class, 'update'])->name('users.update');

@@ -12,7 +12,9 @@ class PosController extends Controller
     public function index(): View
     {
         $categories = Category::with(['products' => fn ($q) => $q->available()])
+            ->where('is_active', true)
             ->whereHas('products', fn ($q) => $q->available())
+            ->ordered()
             ->get();
 
         $activeShift = Auth::user()->shifts()->open()->latest('start_time')->first();
