@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Expense;
 use App\Models\Order;
+use App\Models\Shift;
+use App\Models\User;
 use App\Services\DashboardService;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
@@ -23,6 +25,8 @@ class SalesReportController extends Controller
         $tanggal = $this->parseDate($request->string('tanggal')->toString(), $today->toDateString());
         $bulan = $this->parseDate($request->string('bulan')->toString(), $today->startOfMonth()->toDateString(), 'Y-m-d', 'Y-m');
         $tahun = $this->parseDate($request->string('tahun')->toString(), $today->startOfYear()->toDateString(), 'Y-m-d', 'Y');
+        $kasirId = $request->filled('kasir') ? $request->integer('kasir') : null;
+        $shiftId = $periode === 'harian' && $request->filled('shift') ? $request->integer('shift') : null;
 
         [$start, $end, $periodValue] = match ($periode) {
             'bulanan' => [CarbonImmutable::parse($bulan, self::TIMEZONE)->startOfMonth(), CarbonImmutable::parse($bulan, self::TIMEZONE)->endOfMonth(), substr($bulan, 0, 7)],
@@ -30,8 +34,13 @@ class SalesReportController extends Controller
             default => [CarbonImmutable::parse($tanggal, self::TIMEZONE)->startOfDay(), CarbonImmutable::parse($tanggal, self::TIMEZONE)->endOfDay(), $tanggal],
         };
 
-        $laporan = $this->buildReport($start, $end, $periode);
-        return view('admin.sales-report', compact('laporan', 'periode', 'tanggal', 'bulan', 'tahun', 'periodValue'));
+        $laporan = $this->buildReport($start, $end, $periode, $kasirId, $shiftId);
+        $kasirOptions = User::orderBy('name')->get(['id', 'name']);
+        $shiftOptions = $periode === 'harian'
+            ? Shift::whereBetween('start_time', [$start->utc(), $end->utc()])->with('user:id,name')->orderBy('start_time')->get()
+            : collect();
+
+        return view('admin.sales-report', compact('laporan', 'periode', 'tanggal', 'bulan', 'tahun', 'periodValue', 'kasirId', 'shiftId', 'kasirOptions', 'shiftOptions'));
     }
 
     public function getLaporanHarian(CarbonImmutable|string $tanggal): array
@@ -40,11 +49,13 @@ class SalesReportController extends Controller
         return $this->buildReport($day->startOfDay(), $day->endOfDay(), 'harian');
     }
 
-    private function buildReport(CarbonImmutable $start, CarbonImmutable $end, string $periode): array
+    private function buildReport(CarbonImmutable $start, CarbonImmutable $end, string $periode, ?int $kasirId = null, ?int $shiftId = null): array
     {
         $orders = Order::query()->paid()
             ->whereBetween('created_at', [$start->utc(), $end->utc()])
-            ->with('items.product')->get();
+            ->when($kasirId, fn ($q) => $q->where('user_id', $kasirId))
+            ->when($shiftId, fn ($q) => $q->where('shift_id', $shiftId))
+            ->with(['items.product', 'user:id,name'])->get();
         $items = $orders->flatMap->items;
         $dppCents = (int) round($items->sum(fn ($item) => $item->dppAmount()) * 100, 0, PHP_ROUND_HALF_UP);
         $taxCents = (int) round($orders->sum(fn ($order) => $this->orderTaxAmount($order)) * 100, 0, PHP_ROUND_HALF_UP);
@@ -52,15 +63,16 @@ class SalesReportController extends Controller
         $expense = (float) Expense::query()->whereBetween('expense_date', [$start->toDateString(), $end->toDateString()])->sum('amount');
         $grossProfit = ($dppCents / 100) - $cogs;
         $payments = $orders->groupBy('payment_type');
+        $totalKotor = (float) $orders->sum('total_amount');
 
         return [
             'periode' => $periode, 'tanggal' => $start->toDateString(),
-            'total_transaksi' => $orders->count(), 'total_pendapatan_kotor' => (float) $orders->sum('total_amount'),
-            'total_pendapatan' => (float) $orders->sum('total_amount'), 'total_pajak' => $taxCents / 100,
+            'total_transaksi' => $orders->count(), 'total_pendapatan_kotor' => $totalKotor,
+            'total_pendapatan' => $totalKotor, 'total_pajak' => $taxCents / 100,
             'total_pendapatan_bersih' => $dppCents / 100, 'total_expense' => $expense,
             'gross_profit' => $grossProfit, 'net_profit' => $grossProfit - $expense,
             'total_uang_pembulatan' => (float) $orders->where('payment_type', 'CASH')->sum('rounding_adjustment'),
-            'pajak_terkumpul' => [['label' => 'Termasuk PB1 10%', 'amount' => $taxCents / 100]],
+            'tarif_pajak_efektif' => $dppCents > 0 ? ($taxCents / $dppCents) * 100 : 0.0,
             'transaksi' => $orders,
             'breakdown_pembayaran' => ['CASH' => $this->paymentSummaryFromGroup($payments->get('CASH')), 'QRIS' => $this->paymentSummaryFromGroup($payments->get('QRIS'))],
             'trend' => $this->trend($orders, $start, $end, $periode),
@@ -94,6 +106,15 @@ class SalesReportController extends Controller
 
     private function paymentSummaryFromGroup(?Collection $orders): array
     {
-        return ['jumlah_transaksi' => $orders?->count() ?? 0, 'total_pendapatan' => (float) ($orders?->sum('subtotal') ?? 0), 'total_dibayar' => (float) ($orders?->sum('total_amount') ?? 0)];
+        $totalDibayar = (float) ($orders?->sum('total_amount') ?? 0);
+        $totalFee = (float) ($orders?->sum('gateway_fee_amount') ?? 0);
+
+        return [
+            'jumlah_transaksi' => $orders?->count() ?? 0,
+            'total_pendapatan' => (float) ($orders?->sum('subtotal') ?? 0),
+            'total_dibayar' => $totalDibayar,
+            'total_fee' => $totalFee,
+            'total_bersih' => $totalDibayar - $totalFee,
+        ];
     }
 }
