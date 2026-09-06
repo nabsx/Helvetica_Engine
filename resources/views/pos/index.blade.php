@@ -1,36 +1,91 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="id" class="h-full">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Helvetica POS — Kasir</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    <style>[x-cloak] { display: none !important; }</style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#059669",
+                        "primary-hover": "#047857",
+                    },
+                    fontFamily: {
+                        display: ['"Plus Jakarta Sans"', 'sans-serif'],
+                    },
+                },
+            },
+        };
+    </script>
+    <style>
+        [x-cloak] { display: none !important; }
+        body { font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        .material-symbols-rounded { font-variation-settings: 'FILL' 0, 'wght' 500, 'GRAD' 0, 'opsz' 24; line-height: 1; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
+    </style>
     @livewireStyles
 </head>
-<body class="bg-slate-100 h-screen overflow-hidden">
+<body class="h-full bg-slate-50 text-slate-800 antialiased overflow-hidden select-none">
 
-<div x-data="posApp()" x-init="init()" class="h-screen flex flex-col">
+<div x-data="posApp()" x-init="init()" class="h-full flex flex-col">
     @livewire('pos-realtime', ['shiftId' => $activeShift?->id])
 
     {{-- Top bar --}}
-    <header class="bg-white border-b px-6 py-3 flex items-center justify-between shrink-0">
-        <h1 class="text-lg font-bold text-slate-800">Helvetica POS <span class="text-slate-400 font-normal">/ Kasir</span></h1>
-        <div class="flex items-center gap-3">
-            <span class="text-sm text-slate-500">{{ Auth::user()->name }} ({{ ucfirst(Auth::user()->role) }})</span>
+    <header class="h-16 border-b border-slate-200/80 bg-white/95 backdrop-blur px-5 flex items-center justify-between z-30 shrink-0 shadow-xs">
+        <div class="flex items-center gap-2.5">
+            <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-700 flex items-center justify-center text-white font-black text-lg shadow-md shadow-emerald-500/20">H</div>
+            <span class="font-extrabold tracking-tight text-base text-slate-900 hidden sm:inline">Helvetica<span class="text-emerald-600">POS</span></span>
+        </div>
+
+        <div class="flex-1 max-w-xl mx-6 hidden md:block">
+            <div class="relative group">
+                <span class="material-symbols-rounded absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-emerald-600 text-xl transition-colors">search</span>
+                <input type="text" x-model="searchQuery" placeholder="Cari menu atau SKU produk..."
+                       class="w-full pl-10 pr-4 py-2 text-sm rounded-xl border border-slate-200 bg-slate-50/80 text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-600 transition-all shadow-inner">
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2.5">
             <button @click="transactionsModalOpen = true"
-                    class="text-sm bg-slate-100 text-slate-600 hover:bg-slate-200 rounded-lg px-3 py-1.5 font-medium">
-                Riwayat Transaksi
+                    class="px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 flex items-center gap-1.5 transition">
+                <span class="material-symbols-rounded text-base text-teal-600">receipt_long</span>
+                <span class="hidden sm:inline">Riwayat</span>
             </button>
+
+            <div class="h-8 border-l border-slate-200 mx-1"></div>
+
+            <div class="flex items-center gap-2 pl-1 pr-2 py-1 rounded-xl bg-slate-100">
+                <div class="w-7 h-7 rounded-lg bg-emerald-600 text-white font-bold flex items-center justify-center text-xs">
+                    {{ strtoupper(substr(Auth::user()->name, 0, 1)) }}
+                </div>
+                <div class="text-left hidden lg:block pr-1">
+                    <div class="text-xs font-bold text-slate-800 leading-none">{{ Auth::user()->name }}</div>
+                    <div class="text-[10px] text-slate-500 leading-tight">{{ ucfirst(Auth::user()->role) }}</div>
+                </div>
+            </div>
+
             <button @click="closeShiftModalOpen = true"
-                    class="text-sm bg-red-50 text-red-600 hover:bg-red-100 rounded-lg px-3 py-1.5 font-medium">
-                Tutup Shift
+                    class="px-3 py-1.5 rounded-xl border border-rose-200 text-xs font-semibold text-rose-600 bg-rose-50/60 hover:bg-rose-100 flex items-center gap-1 transition ml-1">
+                <span class="material-symbols-rounded text-base">lock_clock</span>
+                <span class="hidden xl:inline">Tutup Shift</span>
             </button>
+
             <form id="logoutForm" method="POST" action="{{ route('pos.logout') }}">
                 @csrf
-                <button class="text-sm bg-slate-100 hover:bg-slate-200 rounded-lg px-3 py-1.5 font-medium">Keluar</button>
+                <button class="w-9 h-9 rounded-xl border border-slate-200 bg-white text-slate-500 hover:bg-slate-100 flex items-center justify-center transition" title="Keluar">
+                    <span class="material-symbols-rounded text-lg">logout</span>
+                </button>
             </form>
         </div>
     </header>
@@ -38,43 +93,98 @@
     <div class="flex-1 flex overflow-hidden">
 
         {{-- LEFT: Menu --}}
-        <main class="flex-1 flex flex-col overflow-hidden p-6">
+        <main class="flex-1 flex flex-col overflow-hidden border-r border-slate-200 bg-slate-50">
             {{-- Category tabs --}}
-            <div class="flex gap-2 mb-4 overflow-x-auto pb-1">
-                <button @click="activeCategory = 'all'"
-                        :class="activeCategory === 'all' ? 'bg-slate-800 text-white' : 'bg-white text-slate-600 hover:bg-slate-200'"
-                        class="px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition">
-                    Semua
-                </button>
-                <template x-for="category in categories" :key="category.id">
-                    <button @click="activeCategory = category.id"
-                            :class="activeCategory === category.id ? 'bg-slate-800 text-white' : 'bg-white text-slate-600 hover:bg-slate-200'"
-                            class="px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition">
-                        <span x-text="category.name"></span>
+            <div class="px-6 py-3.5 border-b border-slate-200/80 bg-white/70 backdrop-blur flex items-center justify-between gap-4">
+                <div class="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
+                    <button @click="activeCategory = 'all'"
+                            :class="activeCategory === 'all' ? 'bg-primary text-white shadow-sm shadow-emerald-600/30' : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200/90'"
+                            class="px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shrink-0 transition whitespace-nowrap">
+                        <span>✨ Semua</span>
+                        <span :class="activeCategory === 'all' ? 'bg-white/20' : 'bg-slate-100 text-slate-600'" class="px-1.5 py-0.5 rounded-full text-[10px]" x-text="allProducts.length"></span>
                     </button>
-                </template>
+                    <template x-for="category in categories" :key="category.id">
+                        <button @click="activeCategory = category.id"
+                                :class="activeCategory === category.id ? 'bg-primary text-white shadow-sm shadow-emerald-600/30' : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200/90'"
+                                class="px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shrink-0 transition whitespace-nowrap">
+                            <span x-text="categoryEmoji(category.name) + ' ' + category.name"></span>
+                            <span :class="activeCategory === category.id ? 'bg-white/20' : 'bg-slate-100 text-slate-600'" class="px-1.5 py-0.5 rounded-full text-[10px]" x-text="category.products.length"></span>
+                        </button>
+                    </template>
+                </div>
+                <div class="flex items-center gap-2 shrink-0">
+                    <div class="flex items-center p-0.5 rounded-xl bg-slate-100 border border-slate-200">
+                        <button @click="viewMode = 'grid'" :class="viewMode === 'grid' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-400 hover:text-slate-600'" class="p-1 rounded-lg transition">
+                            <span class="material-symbols-rounded text-sm block">grid_view</span>
+                        </button>
+                        <button @click="viewMode = 'list'" :class="viewMode === 'list' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-400 hover:text-slate-600'" class="p-1 rounded-lg transition">
+                            <span class="material-symbols-rounded text-sm block">view_list</span>
+                        </button>
+                    </div>
+                </div>
             </div>
 
             {{-- Product grid --}}
-            <div class="flex-1 overflow-y-auto">
-                <div class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4">
+            <div class="flex-1 overflow-y-auto p-6">
+                <template x-if="filteredProducts.length === 0">
+                    <p class="text-sm text-slate-400 text-center mt-16">Tidak ada produk yang cocok.</p>
+                </template>
+
+                <div x-show="viewMode === 'grid'" class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
                     <template x-for="product in filteredProducts" :key="product.id">
                         <button @click="addToCart(product)"
                                 :disabled="product.stock <= 0"
-                                class="bg-white rounded-xl shadow-sm hover:shadow-md hover:-translate-y-0.5 transition overflow-hidden text-left disabled:cursor-not-allowed disabled:opacity-50">
-                            <div class="h-28 bg-slate-200 flex items-center justify-center text-slate-400 text-sm">
+                                class="group relative rounded-2xl bg-white border border-slate-200/80 overflow-hidden shadow-xs hover:shadow-lg hover:-translate-y-1 hover:border-emerald-500/50 transition duration-200 text-left disabled:cursor-not-allowed disabled:opacity-50 flex flex-col justify-between">
+                            <div>
+                                <div class="relative h-32 w-full bg-slate-100 overflow-hidden flex items-center justify-center">
+                                    <template x-if="product.image">
+                                        <img :src="product.image" :alt="product.name" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+                                    </template>
+                                    <template x-if="!product.image">
+                                        <span class="material-symbols-rounded text-3xl text-slate-300">image</span>
+                                    </template>
+                                    <span class="absolute top-2 right-2 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-900/75 text-white backdrop-blur flex items-center gap-1">
+                                        <span class="w-1.5 h-1.5 rounded-full" :class="product.stock <= product.low_stock_threshold ? 'bg-amber-400' : 'bg-emerald-400'"></span>
+                                        <span x-text="'Stok ' + product.stock"></span>
+                                    </span>
+                                </div>
+                                <div class="p-3">
+                                    <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400" x-text="product.category_name"></span>
+                                    <h3 class="font-bold text-sm text-slate-900 leading-snug mt-0.5 truncate" x-text="product.name"></h3>
+                                </div>
+                            </div>
+                            <div class="px-3 pb-3 pt-1 flex items-center justify-between border-t border-dashed border-slate-100">
+                                <span class="text-sm font-extrabold text-emerald-600" x-text="formatRupiah(product.price)"></span>
+                                <span class="w-8 h-8 rounded-xl bg-emerald-50 text-primary group-hover:bg-primary group-hover:text-white flex items-center justify-center transition shadow-xs">
+                                    <span class="material-symbols-rounded text-lg">add</span>
+                                </span>
+                            </div>
+                        </button>
+                    </template>
+                </div>
+
+                <div x-show="viewMode === 'list'" class="flex flex-col gap-2">
+                    <template x-for="product in filteredProducts" :key="product.id">
+                        <button @click="addToCart(product)"
+                                :disabled="product.stock <= 0"
+                                class="group flex items-center gap-3 rounded-2xl bg-white border border-slate-200/80 p-2.5 shadow-xs hover:shadow-md hover:border-emerald-500/50 transition text-left disabled:cursor-not-allowed disabled:opacity-50">
+                            <div class="w-14 h-14 rounded-xl bg-slate-100 overflow-hidden flex items-center justify-center shrink-0">
                                 <template x-if="product.image">
-                                    <img :src="product.image" class="w-full h-full object-cover">
+                                    <img :src="product.image" :alt="product.name" class="w-full h-full object-cover">
                                 </template>
                                 <template x-if="!product.image">
-                                    <span>No Image</span>
+                                    <span class="material-symbols-rounded text-xl text-slate-300">image</span>
                                 </template>
                             </div>
-                            <div class="p-3">
-                                <p class="font-semibold text-slate-800 text-sm truncate" x-text="product.name"></p>
-                                <p class="text-emerald-600 font-mono tabular-nums font-semibold text-sm mt-1" x-text="formatRupiah(product.price)"></p>
-                                <p class="text-xs mt-1" :class="product.stock <= product.low_stock_threshold ? 'text-amber-600 font-semibold' : 'text-slate-400'" x-text="'Stok: ' + product.stock"></p>
+                            <div class="flex-1 min-w-0">
+                                <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block" x-text="product.category_name"></span>
+                                <h3 class="font-bold text-sm text-slate-900 truncate" x-text="product.name"></h3>
+                                <span class="text-xs mt-0.5" :class="product.stock <= product.low_stock_threshold ? 'text-amber-600 font-semibold' : 'text-slate-400'" x-text="'Stok: ' + product.stock"></span>
                             </div>
+                            <span class="text-sm font-extrabold text-emerald-600 shrink-0" x-text="formatRupiah(product.price)"></span>
+                            <span class="w-8 h-8 rounded-xl bg-emerald-50 text-primary group-hover:bg-primary group-hover:text-white flex items-center justify-center transition shadow-xs shrink-0">
+                                <span class="material-symbols-rounded text-lg">add</span>
+                            </span>
                         </button>
                     </template>
                 </div>
@@ -82,57 +192,79 @@
         </main>
 
         {{-- RIGHT: Cart --}}
-        <aside class="w-[380px] bg-white border-l flex flex-col shrink-0">
-            <div class="px-5 py-4 border-b">
-                <h2 class="font-bold text-slate-800">Keranjang</h2>
+        <aside class="w-[420px] xl:w-[460px] shrink-0 bg-white flex flex-col h-full shadow-2xl z-20">
+            <div class="p-4 border-b border-slate-200 shrink-0">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="flex items-center gap-2">
+                        <div class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                            <span class="material-symbols-rounded text-lg">shopping_basket</span>
+                        </div>
+                        <div>
+                            <h2 class="font-bold text-base text-slate-900">Keranjang Pesanan</h2>
+                            <p class="text-[11px] text-slate-400">{{ Auth::user()->name }} · belum dibayar</p>
+                        </div>
+                    </div>
+                    <button @click="clearCart()" x-show="cart.length > 0"
+                            class="text-xs text-rose-500 hover:text-rose-600 font-semibold px-2 py-1 rounded-lg hover:bg-rose-50 transition flex items-center gap-1">
+                        <span class="material-symbols-rounded text-sm">delete_sweep</span> Kosongkan
+                    </button>
+                </div>
             </div>
 
-            <div class="flex-1 overflow-y-auto px-5 py-3 space-y-3">
+            <div class="flex-1 overflow-y-auto px-4 py-3 divide-y divide-slate-100">
                 <template x-if="cart.length === 0">
                     <p class="text-sm text-slate-400 text-center mt-10">Belum ada item.</p>
                 </template>
 
                 <template x-for="(item, index) in cart" :key="item.product_id">
-                    <div class="flex items-start justify-between gap-2 pb-3 border-b border-slate-100">
+                    <div class="py-3 flex items-center justify-between gap-3 group">
                         <div class="flex-1 min-w-0">
-                            <p class="text-sm font-medium text-slate-800 truncate" x-text="item.name"></p>
-                            <p class="text-xs text-slate-400" x-text="formatRupiah(item.price) + ' / item'"></p>
-                            <div class="flex items-center gap-2 mt-2">
-                                <button @click="decQty(index)" class="w-6 h-6 rounded-full bg-slate-100 hover:bg-slate-200 text-sm font-bold">−</button>
-                                <span class="text-sm font-mono tabular-nums font-semibold w-5 text-center" x-text="item.quantity"></span>
-                                <button @click="incQty(index)" :disabled="item.quantity >= item.stock" class="w-6 h-6 rounded-full bg-slate-100 hover:bg-slate-200 text-sm font-bold disabled:opacity-40">+</button>
-                                <button @click="removeItem(index)" class="ml-2 text-xs text-red-400 hover:text-red-600">Hapus</button>
+                            <div class="flex items-start justify-between gap-2">
+                                <span class="text-sm font-bold text-slate-900 leading-tight truncate" x-text="item.name"></span>
+                                <span class="text-xs font-bold text-slate-900 whitespace-nowrap" x-text="formatRupiah(item.price * item.quantity)"></span>
+                            </div>
+                            <div class="text-[11px] text-slate-400 mt-0.5" x-text="formatRupiah(item.price) + ' / item'"></div>
+                            <div class="flex items-center gap-1.5 mt-2">
+                                <button @click="decQty(index)" class="w-7 h-7 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 flex items-center justify-center transition">
+                                    <span class="material-symbols-rounded text-sm">remove</span>
+                                </button>
+                                <span class="w-6 text-center font-bold text-xs text-slate-800" x-text="item.quantity"></span>
+                                <button @click="incQty(index)" :disabled="item.quantity >= item.stock" class="w-7 h-7 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 flex items-center justify-center transition disabled:opacity-40">
+                                    <span class="material-symbols-rounded text-sm">add</span>
+                                </button>
+                                <button @click="removeItem(index)" class="w-7 h-7 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-50 flex items-center justify-center transition ml-0.5" title="Hapus">
+                                    <span class="material-symbols-rounded text-base">close</span>
+                                </button>
                             </div>
                         </div>
-                        <p class="text-sm font-semibold text-slate-700 whitespace-nowrap" x-text="formatRupiah(item.price * item.quantity)"></p>
                     </div>
                 </template>
             </div>
 
             {{-- Summary + payment --}}
-            <div class="border-t px-5 py-4 space-y-3 bg-slate-50">
-                <div class="space-y-1 text-sm">
-                    <div class="flex justify-between text-slate-600">
+            <div class="border-t px-4 py-4 space-y-3 bg-slate-50/70 shrink-0">
+                <div class="space-y-1.5 text-xs">
+                    <div class="flex items-center justify-between text-slate-600">
                         <span>Total Belanja (nett)</span>
-                        <span x-text="formatRupiah(totalBelanja)"></span>
+                        <span class="font-medium text-slate-800" x-text="formatRupiah(totalBelanja)"></span>
                     </div>
-                    <div class="flex justify-between text-slate-600">
-                        <span>Pajak (PB1)</span>
-                        <span x-text="calculating ? '…' : formatRupiah(taxAmount)"></span>
+                    <div class="flex items-center justify-between text-slate-600">
+                        <span class="flex items-center gap-1">Pajak (PB1) <span class="material-symbols-rounded text-slate-400 text-xs" title="Dihitung per item sesuai pengaturan pajak produk">info</span></span>
+                        <span class="font-medium text-slate-800" x-text="calculating ? '…' : formatRupiah(taxAmount)"></span>
                     </div>
                     <template x-if="paymentType === 'QRIS' && gatewayFeeAmount > 0">
-                        <div class="flex justify-between text-slate-600">
+                        <div class="flex items-center justify-between text-slate-600">
                             <span>Biaya QRIS</span>
-                            <span x-text="calculating ? '…' : formatRupiah(gatewayFeeAmount)"></span>
+                            <span class="font-medium text-slate-800" x-text="calculating ? '…' : formatRupiah(gatewayFeeAmount)"></span>
                         </div>
                     </template>
-                    <div class="flex justify-between text-slate-600">
+                    <div class="flex items-center justify-between text-slate-600">
                         <span>Pembulatan</span>
-                        <span x-text="formatRupiah(roundingAdjustment)"></span>
+                        <span class="font-medium text-slate-800" x-text="formatRupiah(roundingAdjustment)"></span>
                     </div>
-                    <div class="flex justify-between font-bold text-slate-800 text-base pt-1 border-t"><span class="sr-only">Financial summary</span>
-                        <span>Total Bayar</span>
-                        <span x-text="calculating ? '…' : formatRupiah(totalAmount)"></span>
+                    <div class="pt-2 border-t border-slate-200 flex items-baseline justify-between">
+                        <span class="text-xs font-bold uppercase tracking-wider text-slate-700">Total Bayar</span>
+                        <span class="text-2xl font-black text-slate-900 tracking-tight" x-text="calculating ? '…' : formatRupiah(totalAmount)"></span>
                     </div>
                 </div>
 
@@ -140,24 +272,39 @@
                     <p class="text-xs text-red-500" x-text="calcError"></p>
                 </template>
 
-                <div class="grid grid-cols-2 gap-2">
+                <div class="grid grid-cols-2 gap-1.5 pt-1">
                     <button @click="paymentType = 'CASH'"
-                            :class="paymentType === 'CASH' ? 'bg-slate-800 text-white' : 'bg-white text-slate-600 border'"
-                            class="rounded-lg py-2 text-sm font-semibold">CASH</button>
+                            :class="paymentType === 'CASH' ? 'bg-slate-900 text-white' : 'bg-white border border-slate-200 text-slate-700 hover:border-emerald-500'"
+                            class="py-2 px-1 rounded-xl font-bold text-xs flex flex-col items-center justify-center gap-1 shadow-sm transition">
+                        <span class="material-symbols-rounded text-base">payments</span>
+                        <span>CASH</span>
+                    </button>
                     <button @click="paymentType = 'QRIS'"
-                            :class="paymentType === 'QRIS' ? 'bg-slate-800 text-white' : 'bg-white text-slate-600 border'"
-                            class="rounded-lg py-2 text-sm font-semibold">QRIS</button>
+                            :class="paymentType === 'QRIS' ? 'bg-slate-900 text-white' : 'bg-white border border-slate-200 text-slate-700 hover:border-emerald-500'"
+                            class="py-2 px-1 rounded-xl font-semibold text-xs flex flex-col items-center justify-center gap-1 transition">
+                        <span class="material-symbols-rounded text-base" :class="paymentType === 'QRIS' ? 'text-white' : 'text-emerald-600'">qr_code_scanner</span>
+                        <span>QRIS</span>
+                    </button>
                 </div>
 
                 <template x-if="paymentType === 'CASH'">
-                    <div>
-                        <label class="text-xs text-slate-500">Uang Dibayar</label>
-                        <input type="number" x-model.number="cashGiven" placeholder="0"
-                               class="w-full mt-1 rounded-lg border-slate-300 text-sm px-3 py-2">
-                        <div class="flex justify-between text-sm mt-2 font-medium"
-                             :class="changeAmount < 0 ? 'text-red-500' : 'text-emerald-600'">
-                            <span>Kembalian</span>
-                            <span x-text="formatRupiah(Math.max(changeAmount, 0))"></span>
+                    <div class="bg-white p-2.5 rounded-xl border border-slate-200">
+                        <div class="flex items-center justify-between text-xs mb-1">
+                            <span class="font-medium text-slate-600">Uang Diterima / Dibayar</span>
+                            <div class="flex items-center gap-1">
+                                <button @click="cashGiven = Math.ceil(totalAmount)" class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600 hover:bg-emerald-100 hover:text-emerald-700">Pas</button>
+                                <button @click="cashGiven = 50000" class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600 hover:bg-emerald-100 hover:text-emerald-700">50k</button>
+                                <button @click="cashGiven = 100000" class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600 hover:bg-emerald-100 hover:text-emerald-700">100k</button>
+                            </div>
+                        </div>
+                        <div class="relative">
+                            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">Rp</span>
+                            <input type="number" x-model.number="cashGiven" placeholder="0"
+                                   class="w-full pl-9 pr-3 py-1.5 text-sm font-bold rounded-lg border border-slate-300 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                        </div>
+                        <div class="mt-2 pt-2 border-t border-dashed border-slate-200 flex items-center justify-between text-xs">
+                            <span class="font-semibold text-slate-600">Kembalian</span>
+                            <span class="font-extrabold text-sm" :class="changeAmount < 0 ? 'text-red-500' : 'text-emerald-600'" x-text="formatRupiah(Math.max(changeAmount, 0))"></span>
                         </div>
                     </div>
                 </template>
@@ -168,8 +315,9 @@
 
                 <button @click="submitOrder()"
                         :disabled="!canCheckout || submitting"
-                        class="w-full bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl py-3 font-bold">
-                    <span x-show="!submitting">Proses Transaksi</span>
+                        class="w-full py-3.5 px-4 rounded-xl bg-primary hover:bg-primary-hover active:scale-[0.99] disabled:opacity-40 disabled:cursor-not-allowed text-white font-extrabold text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/30 transition">
+                    <span class="material-symbols-rounded text-lg">print</span>
+                    <span x-show="!submitting">Proses Transaksi &amp; Cetak Struk</span>
                     <span x-show="submitting">Memproses...</span>
                 </button>
             </div>
@@ -275,11 +423,29 @@
     </div>
 </div>
 
+@php
+    $categoriesForJs = $categories->map(fn ($category) => [
+        'id' => $category->id,
+        'name' => $category->name,
+        'products' => $category->products->map(fn ($product) => [
+            'id' => $product->id,
+            'name' => $product->name,
+            'price' => $product->price,
+            'stock' => $product->stock,
+            'low_stock_threshold' => $product->low_stock_threshold,
+            'image' => $product->image,
+            'category_name' => $category->name,
+        ]),
+    ]);
+@endphp
+
 <script>
     function posApp() {
         return {
-            categories: @json($categories),
+            categories: @json($categoriesForJs),
             activeCategory: 'all',
+            searchQuery: '',
+            viewMode: 'grid',
             cart: [],
             paymentType: 'CASH',
             cashGiven: 0,
@@ -343,9 +509,23 @@
             },
 
             get filteredProducts() {
-                if (this.activeCategory === 'all') return this.allProducts;
-                const category = this.categories.find(c => c.id === this.activeCategory);
-                return category ? category.products : [];
+                const base = this.activeCategory === 'all'
+                    ? this.allProducts
+                    : (this.categories.find(c => c.id === this.activeCategory)?.products ?? []);
+
+                const query = this.searchQuery.trim().toLowerCase();
+                if (!query) return base;
+
+                return base.filter(p => p.name.toLowerCase().includes(query));
+            },
+
+            categoryEmoji(name) {
+                const key = (name || '').toLowerCase();
+                if (key.includes('non-coffee') || key.includes('non coffee')) return '🧋';
+                if (key.includes('coffee') || key.includes('kopi')) return '☕';
+                if (key.includes('pastry') || key.includes('roti') || key.includes('kue')) return '🥐';
+                if (key.includes('beverage') || key.includes('minuman')) return '💧';
+                return '🍽️';
             },
 
             addToCart(product) {
@@ -377,6 +557,10 @@
 
             removeItem(index) {
                 this.cart.splice(index, 1);
+            },
+
+            clearCart() {
+                this.cart = [];
             },
 
             get subtotal() {
