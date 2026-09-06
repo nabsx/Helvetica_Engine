@@ -35,6 +35,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/expenses', [AdminExpenseController::class, 'index'])->name('expenses.index');
         Route::redirect('/reports', '/admin/dashboard');
         Route::resource('products', AdminProductController::class)->except(['show']);
+        Route::patch('/products/{product}/stock', [AdminProductController::class, 'adjustStock'])->name('products.stock.adjust');
         Route::resource('categories', AdminCategoryController::class)->only(['index', 'store', 'update', 'destroy']);
         Route::get('/users', [AdminUserController::class, 'index'])->name('users.index');
         Route::post('/users', [AdminUserController::class, 'store'])->name('users.store');

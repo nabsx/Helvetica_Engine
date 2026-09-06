@@ -7,6 +7,7 @@ use App\Models\OrderCancellationRequest;
 use App\Models\Product;
 use App\Services\CashDrawerService;
 use App\Services\ActivityLogService;
+use App\Services\InventoryService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -37,7 +38,7 @@ class AdminCancellationController extends Controller
      * restored line-by-line with the same row-locking pattern OrderController
      * uses when it deducts stock, so a restock can never race a concurrent sale.
      */
-    public function approve(Request $request, OrderCancellationRequest $cancellationRequest, CashDrawerService $cashDrawer, ActivityLogService $activityLogs): RedirectResponse
+    public function approve(Request $request, OrderCancellationRequest $cancellationRequest, CashDrawerService $cashDrawer, ActivityLogService $activityLogs, InventoryService $inventory): RedirectResponse
     {
         $data = $request->validate([
             'admin_note' => ['nullable', 'string', 'max:500'],
@@ -47,7 +48,7 @@ class AdminCancellationController extends Controller
             return back()->with('error', 'Pengajuan ini sudah diproses sebelumnya.');
         }
 
-        DB::transaction(function () use ($cancellationRequest, $data, $cashDrawer, $activityLogs) {
+        DB::transaction(function () use ($cancellationRequest, $data, $cashDrawer, $activityLogs, $inventory) {
             $order = Order::query()->whereKey($cancellationRequest->order_id)->lockForUpdate()->first();
 
             if ($order->status !== 'paid') {
@@ -69,7 +70,10 @@ class AdminCancellationController extends Controller
                 ->keyBy('id');
 
             foreach ($items as $item) {
-                $products->get($item->product_id)?->increment('stock', $item->quantity);
+                $product = $products->get($item->product_id);
+                if ($product) {
+                    $inventory->recordRefund($product, $item->quantity, Auth::id(), Order::class, $order->id);
+                }
             }
 
             $cancellationRequest->update([
