@@ -9,6 +9,7 @@ use App\Models\Product;
 use App\Services\ActivityLogService;
 use App\Services\DashboardService;
 use App\Services\FinancialCalculationService;
+use App\Services\InventoryService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -18,6 +19,7 @@ class OrderController extends Controller
     public function __construct(
         private readonly ActivityLogService $activityLogs,
         private readonly FinancialCalculationService $financials,
+        private readonly InventoryService $inventory,
     ) {}
 
     /**
@@ -96,7 +98,8 @@ class OrderController extends Controller
             ]);
             $order->items()->createMany($financials['items']);
             foreach ($data['items'] as $item) {
-                $products->get((int) $item['product_id'])->decrement('stock', (int) $item['quantity']);
+                $product = $products->get((int) $item['product_id']);
+                $this->inventory->recordSale($product, (int) $item['quantity'], $order, Auth::id());
             }
             $order = $order->load('items');
             $this->activityLogs->record('order.created', $order, ['total_amount' => $order->total_amount, 'payment_type' => $order->payment_type]);

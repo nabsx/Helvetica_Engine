@@ -4,6 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\Category;
 use App\Models\Product;
+use App\Services\InventoryService;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -11,6 +14,8 @@ use Illuminate\View\View;
 
 class AdminProductController extends Controller
 {
+    public function __construct(private readonly InventoryService $inventory) {}
+
     public function index(Request $request): View
     {
         $products = Product::with('category')
@@ -54,14 +59,22 @@ class AdminProductController extends Controller
     public function update(Request $request, Product $product): RedirectResponse
     {
         $data = $this->validatedData($request);
+        $requestedStock = (int) $data['stock'];
+        unset($data['stock']);
 
         if ($request->hasFile('image') && $product->image && str_starts_with($product->image, '/storage/')) {
             Storage::disk('public')->delete(str_replace('/storage/', '', $product->image));
         }
 
-        $product->update($data);
+  DB::transaction(function () use ($product, $data, $requestedStock): void {
+      $product->update($data);
 
-        return redirect()->route('admin.products.index')->with('success', "Produk {$product->name} berhasil diperbarui.");
+      if ($requestedStock !== $product->stock) {
+          $this->inventory->recordAdjustment($product, $requestedStock, 'Perubahan stok dari form edit produk.', Auth::id());
+      }
+  });
+
+  return redirect()->route('admin.products.index')->with('success', "Produk {$product->name} berhasil diperbarui.");
     }
 
     public function destroy(Product $product): RedirectResponse
