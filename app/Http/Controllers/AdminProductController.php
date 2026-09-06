@@ -21,13 +21,44 @@ class AdminProductController extends Controller
                 $query->where('name', 'like', "%{$search}%");
             })
             ->when($request->filled('category_id'), fn ($query) => $query->where('category_id', $request->integer('category_id')))
-            ->latest()
-            ->paginate(12)
+            ->when($request->string('stock_status')->value(), function ($query, string $status): void {
+                match ($status) {
+                    'low' => $query->whereColumn('stock', '<=', 'low_stock_threshold'),
+                    'ok' => $query->whereColumn('stock', '>', 'low_stock_threshold'),
+                    default => null,
+                };
+            })
+            ->when(true, function ($query) use ($request): void {
+                match ($request->string('sort')->value()) {
+                    'price_desc' => $query->orderByDesc('price'),
+                    'price_asc' => $query->orderBy('price'),
+                    'margin_desc' => $query->orderByRaw('(price - cost_price) DESC'),
+                    'stock_asc' => $query->orderBy('stock'),
+                    default => $query->orderBy('name'),
+                };
+            })
+            ->paginate(10)
             ->withQueryString();
+
+        $lowStockProducts = Product::whereColumn('stock', '<=', 'low_stock_threshold')
+            ->orderBy('stock')
+            ->get(['id', 'name', 'stock', 'low_stock_threshold']);
+
+        $marginBearingCount = Product::where('price', '>', 0)->whereNotNull('cost_price')->count();
+        $avgMarginPercent = $marginBearingCount > 0
+            ? (int) round(
+                Product::where('price', '>', 0)->whereNotNull('cost_price')
+                    ->selectRaw('AVG((price - cost_price) / price * 100) as avg_margin')
+                    ->value('avg_margin') ?? 0
+            )
+            : null;
 
         return view('admin.products.index', [
             'products' => $products,
-            'categories' => Category::orderBy('name')->get(),
+            'categories' => Category::withCount('products')->orderBy('name')->get(),
+            'activeCategoryCount' => Category::where('is_active', true)->count(),
+            'lowStockProducts' => $lowStockProducts,
+            'avgMarginPercent' => $avgMarginPercent,
         ]);
     }
 
