@@ -35,6 +35,17 @@ class ReportingAggregationTest extends TestCase
         $this->assertSame(6364.0, $report['total_pajak']);
     }
 
+    public function test_sales_report_includes_order_created_at_in_utc_for_jakarta_day(): void
+    {
+        [$order] = $this->createPaidOrder('2026-09-07 16:38:11');
+        $order->items()->create(['product_id' => $this->productId, 'quantity' => 1, 'price' => 20000, 'unit_cost' => 6000, 'taxable_base' => 20000, 'tax_amount' => 0, 'subtotal' => 20000]);
+
+        $report = app(SalesReportController::class)->getLaporanHarian('2026-09-07');
+
+        $this->assertSame(1, $report['total_transaksi']);
+        $this->assertSame($order->id, $report['transaksi']->first()->id);
+    }
+
     public function test_2330_wib_transaction_belongs_only_to_that_jakarta_date(): void
     {
         [$order] = $this->createPaidOrder('2026-08-18 16:30:00'); // 23:30 WIB
