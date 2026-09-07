@@ -55,7 +55,10 @@ class SalesReportController extends Controller
             ->whereBetween('created_at', [$start, $end])
             ->when($kasirId, fn ($q) => $q->where('user_id', $kasirId))
             ->when($shiftId, fn ($q) => $q->where('shift_id', $shiftId))
-            ->with(['items.product', 'user:id,name'])->get();
+            ->with(['items.product', 'user:id,name'])
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->get();
         $items = $orders->flatMap->items;
         $dppCents = (int) round($items->sum(fn ($item) => $item->dppAmount()) * 100, 0, PHP_ROUND_HALF_UP);
         $taxCents = (int) round($orders->sum(fn ($order) => $this->orderTaxAmount($order)) * 100, 0, PHP_ROUND_HALF_UP);
