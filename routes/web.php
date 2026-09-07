@@ -31,6 +31,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/cash-monitoring', [CashMonitoringController::class, 'index'])->name('shifts.index');
         Route::get('/shifts/{shift}', [CashMonitoringController::class, 'show'])->name('shifts.show');
         Route::post('/shifts/{shift}/approve', [CashMonitoringController::class, 'approve'])->name('shifts.approve');
+        Route::post('/shifts/{shift}/reject', [CashMonitoringController::class, 'reject'])->name('shifts.reject');
         Route::get('/laporan-penjualan', [SalesReportController::class, 'index'])->name('sales-report');
         Route::get('/expenses', [AdminExpenseController::class, 'index'])->name('expenses.index');
         Route::redirect('/reports', '/admin/dashboard');

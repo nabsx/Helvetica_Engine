@@ -79,6 +79,26 @@ class CashDrawerService
         });
     }
 
+    public function rejectShift(Shift $shift, int $reviewerId): Shift
+    {
+        return DB::transaction(function () use ($shift): Shift {
+            $locked = Shift::query()->whereKey($shift->id)->lockForUpdate()->firstOrFail();
+            if ($locked->status !== 'pending_close') {
+                throw ValidationException::withMessages(['shift' => 'Shift ini belum menunggu approval atau sudah diproses.']);
+            }
+
+            $locked->forceFill([
+                'end_time' => null,
+                'actual_cash' => null,
+                'closing_cash' => null,
+                'cash_difference' => null,
+                'status' => 'open',
+            ])->save();
+
+            return $locked->fresh(['user', 'opener']);
+        });
+    }
+
     public function recordMovement(Shift $shift, int $userId, string $type, float $amount, string $category, ?string $description = null, ?string $referenceType = null, ?int $referenceId = null): CashMovement
     {
         if ($amount <= 0 || ! in_array($type, ['in', 'out'], true)) {

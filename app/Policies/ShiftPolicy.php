@@ -21,4 +21,9 @@ class ShiftPolicy
     {
         return $shift->status === 'pending_close' && $user->can('approve-shift');
     }
+
+    public function reject(User $user, Shift $shift): bool
+    {
+        return $shift->status === 'pending_close' && $user->can('approve-shift');
+    }
 }
