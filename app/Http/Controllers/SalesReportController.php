@@ -37,7 +37,7 @@ class SalesReportController extends Controller
         $laporan = $this->buildReport($start, $end, $periode, $kasirId, $shiftId);
         $kasirOptions = User::orderBy('name')->get(['id', 'name']);
         $shiftOptions = $periode === 'harian'
-            ? Shift::whereBetween('start_time', [$start->utc(), $end->utc()])->with('user:id,name')->orderBy('start_time')->get()
+            ? Shift::whereBetween('start_time', [$start, $end])->with('user:id,name')->orderBy('start_time')->get()
             : collect();
 
         return view('admin.sales-report', compact('laporan', 'periode', 'tanggal', 'bulan', 'tahun', 'periodValue', 'kasirId', 'shiftId', 'kasirOptions', 'shiftOptions'));
@@ -52,7 +52,7 @@ class SalesReportController extends Controller
     private function buildReport(CarbonImmutable $start, CarbonImmutable $end, string $periode, ?int $kasirId = null, ?int $shiftId = null): array
     {
         $orders = Order::query()->paid()
-            ->whereBetween('created_at', [$start->utc(), $end->utc()])
+            ->whereBetween('created_at', [$start, $end])
             ->when($kasirId, fn ($q) => $q->where('user_id', $kasirId))
             ->when($shiftId, fn ($q) => $q->where('shift_id', $shiftId))
             ->with(['items.product', 'user:id,name'])->get();
