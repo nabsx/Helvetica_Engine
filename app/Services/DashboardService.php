@@ -17,9 +17,11 @@ class DashboardService
     public function snapshot(string $date): array
     {
         $localDate = Carbon::createFromFormat('Y-m-d', $date, self::OPERATIONAL_TIMEZONE);
-        $start = $localDate->copy()->startOfDay()->utc();
-        $end = $localDate->copy()->endOfDay()->utc();
-        $orders = Order::query()->paid()->forJakartaDate($date);
+        // APP_TIMEZONE is Asia/Jakarta, so order timestamps are queried in the same
+        // operational timezone instead of shifting the dashboard into the next day.
+        $start = $localDate->copy()->startOfDay();
+        $end = $localDate->copy()->endOfDay();
+        $orders = Order::query()->paid()->whereBetween('created_at', [$start, $end]);
         $orderCount = (clone $orders)->count();
         $revenue = round((float) (clone $orders)->sum('total_amount'), 2);
         $cash = round((float) (clone $orders)->where('payment_type', 'CASH')->sum('total_amount'), 2);
@@ -74,8 +76,8 @@ class DashboardService
 
         $chart = collect(range(0, 6))->map(function (int $offset) use ($localDate): array {
             $day = $localDate->copy()->subDays(6 - $offset);
-            $from = $day->copy()->startOfDay()->utc();
-            $to = $day->copy()->endOfDay()->utc();
+            $from = $day->copy()->startOfDay();
+            $to = $day->copy()->endOfDay();
             return ['label' => $day->format('D'), 'amount' => round((float) Order::query()->paid()->whereBetween('created_at', [$from, $to])->sum('total_amount'), 2)];
         });
 
